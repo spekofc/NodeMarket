@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Listing Posted — {{ store_name }}{% endblock %}
+{% block content %}
+<main class="sell-success">
+  <h1>Listing Posted!</h1>
+
+  <div class="success-card">
+    <p><strong>Title:</strong> {{ name }}</p>
+    <p><strong>Status:</strong>
+      {% if status == 'active' %}
+      <span class="status status-completed">Active</span>
+      {% elif status == 'pending_approval' %}
+      <span class="status status-pending">Pending Approval</span>
+      {% else %}
+      <span class="status">{{ status }}</span>
+      {% endif %}
+    </p>
+
+    <p class="muted">Your seller token (save this — it cannot be recovered):</p>
+    <div class="token-box">
+      <code>{{ seller_token }}</code>
+    </div>
+
+    <p class="muted">Use this token to manage your listing:</p>
+    <p><a href="/sell/manage/{{ seller_token }}" class="btn">Manage Listing</a></p>
+
+    <details class="token-details">
+      <summary>What can I do with this token?</summary>
+      <ul>
+        <li>View your listing status and details</li>
+        <li>Pause/resume the listing</li>
+        <li>See orders placed for your item</li>
+        <li>No account, no email, no password needed</li>
+      </ul>
+    </details>
+  </div>
+
+  <p><a href="/">&larr; Back to catalog</a></p>
+</main>
+{% endblock %}

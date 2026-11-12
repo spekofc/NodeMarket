@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Manage: {{ listing['name'] }} — {{ store_name }}{% endblock %}
+{% block content %}
+<main class="sell-manage">
+  <h1>Manage Listing</h1>
+
+  <div class="listing-summary">
+    <h2>{{ listing['name'] }}</h2>
+    <p class="price">{{ listing['price_cents'] | money }} {{ listing['currency'] }}</p>
+    <p class="muted">Token: <code>{{ listing['seller_token'] }}</code></p>
+
+    <div class="status-badge">
+      Status:
+      {% if listing['status'] == 'active' %}
+      <span class="status status-completed">Active</span>
+      {% elif listing['status'] == 'pending_approval' %}
+      <span class="status status-pending">Pending Approval</span>
+      {% elif listing['status'] == 'paused' %}
+      <span class="status status-disputed">Paused</span>
+      {% elif listing['status'] == 'rejected' %}
+      <span class="status status-bad">Rejected</span>
+      {% else %}
+      <span class="status">{{ listing['status'] }}</span>
+      {% endif %}
+    </div>
+
+    {% if category %}
+    <p class="muted">Category: <a href="/?category={{ category['slug'] }}">{{ category['name'] }}</a></p>
+    {% endif %}
+  </div>
+
+  <div class="actions">
+    {% if listing['status'] == 'active' %}
+    <form method="post" action="/sell/manage/{{ listing['seller_token'] }}/pause" class="inline-form">
+      <button type="submit" class="danger">Pause Listing</button>
+    </form>
+    {% elif listing['status'] == 'paused' %}
+    <form method="post" action="/sell/manage/{{ listing['seller_token'] }}/pause" class="inline-form">
+      <button type="submit" class="ok">Resume Listing</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <hr>
+
+  <h2>Orders for this Listing</h2>
+  {% if orders %}
+  <table class="admin-table">
+    <thead><tr><th>Order Ref</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td><a href="/order/{{ o['order_ref'] }}">{{ o['order_ref'] }}</a></td>
+        <td><span class="status status-{{ o['status'] }}">{{ o['status'] }}</span></td>
+        <td>{{ o['total_cents'] | money }} {{ o['currency'] }}</td>
+        <td>{{ o['created_at'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">No orders yet.</p>
+  {% endif %}
+
+  <p><a href="/">&larr; Back to catalog</a></p>
+</main>
+{% endblock %}

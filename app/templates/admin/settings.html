@@ -10,6 +10,18 @@
   <label for="store_name">Store name</label>
   <input type="text" id="store_name" name="store_name" value="{{ settings['store_name'] }}" maxlength="80">
 
+  <h3>Public listing policy</h3>
+  <label for="listing_policy">Vendor listing mode</label>
+  <select id="listing_policy" name="listing_policy">
+    <option value="disabled" {{ 'selected' if settings['listing_policy'] == 'disabled' }}>
+      Disabled — only admin creates products</option>
+    <option value="moderated" {{ 'selected' if settings['listing_policy'] == 'moderated' }}>
+      Moderated / Approval Required — vendors submit, admin approves (recommended)</option>
+    <option value="open" {{ 'selected' if settings['listing_policy'] == 'open' }}>
+      Open / Auto-Publish — listings go live immediately</option>
+  </select>
+  <p class="muted">Controls whether vendors can post listings via <code>/sell</code>.</p>
+
   <h3>Settlement mode</h3>
   <label>
     <input type="radio" name="settlement_mode" value="direct"

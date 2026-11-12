@@ -249,10 +249,16 @@ row = conn.execute("SELECT reason, description, status FROM reports WHERE produc
 conn.close()
 check("report stored", row is not None and row[0] == "scam" and row[2] == "open")
 
+# get an active product for reporting tests
+conn = sqlite3.connect("data/nodemarket.db")
+active_prod = conn.execute("SELECT id FROM products WHERE active = 1 LIMIT 1").fetchone()
+conn.close()
+report_pid = str(active_prod[0]) if active_prod else "1"
+
 # report with wrong captcha
-status, html, _ = buyer_get("/product/2/report")
+status, html, _ = buyer_get(f"/product/{report_pid}/report")
 token, answer = solve_captcha(html)
-status, html, _ = buyer_post("/product/2/report", {
+status, html, _ = buyer_post(f"/product/{report_pid}/report", {
     "reason": "spam", "description": "spam",
     "captcha_token": token, "captcha_answer": "0"
 })
@@ -260,9 +266,9 @@ print(f"DEBUG: wrong captcha report status={status}")
 check("wrong captcha on report -> 400", status == 400)
 
 # report with missing reason
-status, html, _ = buyer_get("/product/2/report")
+status, html, _ = buyer_get(f"/product/{report_pid}/report")
 token, answer = solve_captcha(html)
-status, html, _ = buyer_post("/product/2/report", {
+status, html, _ = buyer_post(f"/product/{report_pid}/report", {
     "reason": "", "description": "no reason",
     "captcha_token": token, "captcha_answer": answer
 })
@@ -279,7 +285,7 @@ check("admin reports page", status == 200 and "scam" in html)
 
 # admin archives report
 conn = sqlite3.connect("data/nodemarket.db")
-rid = conn.execute("SELECT id FROM reports WHERE product_id = 2").fetchone()[0]
+rid = conn.execute(f"SELECT id FROM reports WHERE product_id = {report_pid}").fetchone()[0]
 conn.close()
 
 status, html, _ = admin_post(f"/admin/reports/{rid}/archive", {})
@@ -296,7 +302,7 @@ check("action report -> 200 (follows redirect)", status == 200)
 
 conn = sqlite3.connect("data/nodemarket.db")
 row = conn.execute("SELECT status FROM reports WHERE id = ?", (rid,)).fetchone()
-prod = conn.execute("SELECT active FROM products WHERE id = 2").fetchone()
+prod = conn.execute(f"SELECT active FROM products WHERE id = {report_pid}").fetchone()
 conn.close()
 check("report status = actioned", row[0] == "actioned")
 check("product deactivated", prod[0] == 0)

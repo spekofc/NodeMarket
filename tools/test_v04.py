@@ -143,7 +143,12 @@ def save_settings():
 def place_order(method="demo", extra=None, wrong_captcha=False):
     data = {"payment_method": method}
     data.update(extra or {})
-    buyer_post("/cart/add", {"pid": "1", "qty": "1"})
+    # Use a valid active product
+    conn = sqlite3.connect("data/nodemarket.db")
+    prod = conn.execute("SELECT id FROM products WHERE active = 1 LIMIT 1").fetchone()
+    conn.close()
+    pid = str(prod[0]) if prod else "1"
+    buyer_post("/cart/add", {"pid": pid, "qty": "1"})
     status, html, _ = buyer_get("/checkout")
     token, answer = solve_captcha(html)
     data["captcha_token"] = token or "x"
@@ -256,7 +261,12 @@ check("combined search+filter", "Privacy Zine" in html and "Raspberry Pi 5" not 
 status, html, _ = buyer_get("/?q=<script>")
 check("search term not reflected raw", "<script>" not in html)
 
-status, html, _ = buyer_get("/product/2")
+# get the Raspberry Pi 5 product ID dynamically
+conn = sqlite3.connect("data/nodemarket.db")
+pi_id = conn.execute("SELECT id FROM products WHERE name = 'Raspberry Pi 5'").fetchone()[0]
+conn.close()
+
+status, html, _ = buyer_get(f"/product/{pi_id}")
 check("product page shows category badge", "Hardware" in html and 'category=' in html)
 check("product page shows FULL description", "8GB RAM" in html)
 

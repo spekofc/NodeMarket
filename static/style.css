@@ -329,3 +329,23 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 /* admin reports table */
 
 .admin-table pre.ciphertext { max-width: 30rem; }
+
+/* sell / vendor portal */
+
+.sell-page, .sell-success, .sell-manage { max-width: 48rem; }
+.form-row { display: flex; gap: 1rem; }
+.form-row > div { flex: 1; }
+.token-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.8rem;
+  margin: 0.5rem 0;
+  font-family: monospace;
+  word-break: break-all;
+}
+.token-details summary { cursor: pointer; color: var(--accent); }
+.token-details ul { margin: 0.5rem 0 0 1.5rem; }
+.success-card { padding: 1rem; border: 1px solid var(--ok); border-radius: 0.4rem; background: var(--bg); }
+.listing-summary .status-badge { margin-top: 0.5rem; }
+.actions { margin: 1rem 0; }
+.sell-manage .admin-table { margin-top: 1rem; }

@@ -325,12 +325,14 @@ def settings_update(request: Request, store_name: str = Form(""),
                     demo_enabled: str = Form(""),
                     payout_btc_address: str = Form(""),
                     payout_xmr_address: str = Form(""),
-                    settlement_mode: str = Form("direct")):
+                    settlement_mode: str = Form("direct"),
+                    listing_policy: str = Form("moderated")):
     guard = _guard(request)
     if guard:
         return guard
     settlement = settlement_mode if settlement_mode in {"direct", "escrow"} else "direct"
     btc_mode = btc_mode if btc_mode in {"xpub", "rpc"} else "xpub"
+    policy = listing_policy if listing_policy in {"disabled", "moderated", "open"} else "moderated"
     execute(
         """UPDATE store_settings
            SET store_name = ?, pgp_public_key = ?,
@@ -338,14 +340,14 @@ def settings_update(request: Request, store_name: str = Form(""),
                xmr_enabled = ?, xmr_address = ?, xmr_subaddresses = ?,
                xmr_rate = ?, demo_enabled = ?,
                payout_btc_address = ?, payout_xmr_address = ?,
-               settlement_mode = ?
+               settlement_mode = ?, listing_policy = ?
            WHERE id = 1""",
         (store_name.strip() or "NodeMarket Store", pgp_public_key.strip(),
          _flag(btc_enabled), btc_mode, btc_rate.strip(), xpub.strip(),
          _flag(xmr_enabled), xmr_address.strip(), xmr_subaddresses.strip(),
          xmr_rate.strip(), _flag(demo_enabled),
          payout_btc_address.strip(), payout_xmr_address.strip(),
-         settlement),
+         settlement, policy),
     )
     return RedirectResponse("/admin/settings", status_code=303)
 
@@ -385,3 +387,49 @@ def report_action(request: Request, rid: int):
         execute("UPDATE products SET active = 0 WHERE id = ?", (row[0]["product_id"],))
         execute("UPDATE reports SET status = 'actioned' WHERE id = ?", (rid,))
     return RedirectResponse("/admin/reports", status_code=303)
+
+
+# --- seller listings moderation -----------------------------------------------
+
+@router.get("/listings", response_class=HTMLResponse)
+def listings_view(request: Request):
+    guard = _guard(request)
+    if guard:
+        return guard
+    listings = query("""
+        SELECT sl.*, c.name AS category_name
+        FROM seller_listings sl
+        LEFT JOIN categories c ON c.id = sl.category_id
+        ORDER BY sl.id DESC
+    """)
+    return templates.TemplateResponse(request, "admin/listings.html", {"listings": listings})
+
+
+@router.post("/listings/{lid}/approve")
+def listing_approve(request: Request, lid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    execute("UPDATE seller_listings SET status = 'active' WHERE id = ?", (lid,))
+    return RedirectResponse("/admin/listings", status_code=303)
+
+
+@router.post("/listings/{lid}/reject")
+def listing_reject(request: Request, lid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    execute("UPDATE seller_listings SET status = 'rejected' WHERE id = ?", (lid,))
+    return RedirectResponse("/admin/listings", status_code=303)
+
+
+@router.post("/listings/{lid}/pause")
+def listing_pause(request: Request, lid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    row = query("SELECT status FROM seller_listings WHERE id = ?", (lid,))
+    if row:
+        new_status = "active" if row[0]["status"] == "paused" else "paused"
+        execute("UPDATE seller_listings SET status = ? WHERE id = ?", (new_status, lid))
+    return RedirectResponse("/admin/listings", status_code=303)

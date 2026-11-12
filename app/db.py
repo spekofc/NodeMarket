@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS store_settings (
     demo_enabled       INTEGER NOT NULL DEFAULT 1,
     payout_btc_address TEXT    NOT NULL DEFAULT '',     -- escrow auto-release destination
     payout_xmr_address TEXT    NOT NULL DEFAULT '',
-    settlement_mode    TEXT    NOT NULL DEFAULT 'direct' -- 'direct' | 'escrow'
+    settlement_mode    TEXT    NOT NULL DEFAULT 'direct', -- 'direct' | 'escrow'
+    listing_policy     TEXT    NOT NULL DEFAULT 'moderated' -- 'disabled' | 'moderated' | 'open'
 );
 
 INSERT OR IGNORE INTO store_settings (id) VALUES (1);
@@ -99,6 +100,27 @@ CREATE TABLE IF NOT EXISTS reports (
     status      TEXT    NOT NULL DEFAULT 'open',  -- 'open' | 'archived' | 'actioned'
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS seller_listings (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_token    TEXT    NOT NULL UNIQUE,
+    name            TEXT    NOT NULL,
+    description     TEXT    NOT NULL DEFAULT '',
+    price_cents     INTEGER NOT NULL,
+    currency        TEXT    NOT NULL DEFAULT 'USD',
+    category_id     INTEGER,
+    payout_address  TEXT    NOT NULL DEFAULT '',   -- optional seller-specific payout (BTC/XMR)
+    status          TEXT    NOT NULL DEFAULT 'pending_approval', -- 'pending_approval' | 'active' | 'paused' | 'rejected'
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS seller_orders (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_listing_id INTEGER NOT NULL REFERENCES seller_listings(id) ON DELETE CASCADE,
+    order_id        INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(seller_listing_id, order_id)
+);
 """
 
 
@@ -123,6 +145,7 @@ _MIGRATIONS = {
         "payout_btc_address": "TEXT    NOT NULL DEFAULT ''",
         "payout_xmr_address": "TEXT    NOT NULL DEFAULT ''",
         "settlement_mode":    "TEXT    NOT NULL DEFAULT 'direct'",
+        "listing_policy":     "TEXT    NOT NULL DEFAULT 'moderated'",
     },
     "orders": {
         "settlement_mode": "TEXT NOT NULL DEFAULT 'direct'",

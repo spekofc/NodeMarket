@@ -39,6 +39,19 @@ modes, including Tor Browser at its highest security level.
 
 ## Install & run
 
+### Quick start (one-click)
+
+**Windows:** double-click `run.bat`
+
+**Linux/macOS:** run `./run.sh`
+
+Both scripts automatically:
+- Create `.venv` and install dependencies on first run
+- Copy `.env.example` → `.env` if missing (edit `SECRET_KEY` and `ADMIN_PASSWORD`)
+- Start the server at `http://127.0.0.1:8000`
+
+### Manual setup
+
 ```bash
 git clone https://github.com/spekofc/NodeMarket
 cd NodeMarket
@@ -64,8 +77,8 @@ Open `http://127.0.0.1:8000`.
 1. Sign in at `/admin` with `ADMIN_PASSWORD`.
 2. Go to **Settings**: set the store name, paste your ASCII-armored **PGP
    public key**, enable the payment methods you accept (Bitcoin, Monero,
-   Demo) and pick the **settlement mode**. See
-   [Payments (v0.3)](#payments-v03) below.
+   Demo) and pick the **settlement mode** and **listing policy**. See
+   [Payments (v0.3)](#payments-v03) and [Vendor Listings (v0.6)](#vendor-listings-v06) below.
 3. Add products under **Products** and group them with **Categories** —
    the storefront gets filter links (`/?category=slug`) and a plain-HTML
    search box (`/?q=`) automatically.
@@ -76,12 +89,37 @@ Open `http://127.0.0.1:8000`.
    — messages are PGP-encrypted by default, no accounts needed.
 6. Shoppers can **Report listing** on any product page — CAPTCHA-protected,
    visible in `/admin/reports` for moderation (archive or deactivate product).
+7. Vendors can post listings via **Sell / Post Listing** (`/sell`) — no account,
+   just a secure token to manage their listing and view orders.
 
 View orders in the admin panel as ciphertext and decrypt them locally:
 
 ```bash
 gpg --decrypt buyer-order.txt
 ```
+
+## Vendor Listings (v0.6)
+
+The **Sell / Post Listing** portal (`/sell`) lets anyone list products without
+creating an account:
+
+- **Zero-JS, CAPTCHA-protected** form at `/sell`
+- Seller provides title, category, description, price, currency, and optional
+  payout address (BTC/XMR for direct-to-seller sales)
+- On submit, a **unique seller token** is generated — bookmark it
+- Seller dashboard at `/sell/manage/<token>` shows listing status and orders
+
+Admin controls the marketplace policy in **Settings → Public listing policy**:
+
+| Mode | Behavior |
+|---|---|
+| **Disabled** | Only admin creates products (default for private stores) |
+| **Moderated** (recommended) | Vendors submit → `pending_approval` → admin approves/rejects in `/admin/listings` |
+| **Open** | Listings go live immediately |
+
+Admin moderation: `/admin/listings` shows all vendor listings with
+Approve/Reject/Pause actions. Approved listings appear in the catalog
+alongside admin-created products.
 
 ## Docker deploy
 

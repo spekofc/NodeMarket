@@ -1,0 +1,52 @@
+{% extends "admin/base.html" %}
+{% block title %}Seller Listings · Admin{% endblock %}
+{% block admin_content %}
+<h2>Seller Listings</h2>
+<p class="muted">Review and moderate vendor-submitted listings.</p>
+
+{% if listings %}
+<table>
+  <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Price</th><th>Status</th><th>Created</th><th>Token</th><th></th></tr></thead>
+  <tbody>
+    {% for l in listings %}
+    <tr>
+      <td>{{ l['id'] }}</td>
+      <td>{{ l['name'] }}</td>
+      <td>{{ l['category_name'] or '—' }}</td>
+      <td>{{ l['price_cents'] | money }} {{ l['currency'] }}</td>
+      <td>
+        {% if l['status'] == 'active' %}<span class="status status-completed">Active</span>
+        {% elif l['status'] == 'pending_approval' %}<span class="status status-pending">Pending</span>
+        {% elif l['status'] == 'paused' %}<span class="status status-disputed">Paused</span>
+        {% elif l['status'] == 'rejected' %}<span class="status status-bad">Rejected</span>
+        {% else %}<span class="status">{{ l['status'] }}</span>{% endif %}
+      </td>
+      <td>{{ l['created_at'] }}</td>
+      <td class="muted" style="font-family: monospace; font-size: 0.8rem;">{{ l['seller_token'][:8] }}…</td>
+      <td class="row-actions">
+        {% if l['status'] == 'pending_approval' %}
+        <form method="post" action="/admin/listings/{{ l['id'] }}/approve" class="inline-form">
+          <button type="submit" class="ok">Approve</button>
+        </form>
+        <form method="post" action="/admin/listings/{{ l['id'] }}/reject" class="inline-form">
+          <button type="submit" class="danger">Reject</button>
+        </form>
+        {% endif %}
+        {% if l['status'] == 'active' %}
+        <form method="post" action="/admin/listings/{{ l['id'] }}/pause" class="inline-form">
+          <button type="submit">Pause</button>
+        </form>
+        {% elif l['status'] == 'paused' %}
+        <form method="post" action="/admin/listings/{{ l['id'] }}/pause" class="inline-form">
+          <button type="submit" class="ok">Resume</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No seller listings yet.</p>
+{% endif %}
+{% endblock %}

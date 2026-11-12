@@ -18,7 +18,9 @@ from starlette.responses import HTMLResponse, Response
 _RULES: dict[str, tuple[int, float]] = {
     "admin_login": (5, 60),
     "checkout": (10, 60),
-    "captcha": (30, 60),
+    "captcha": (200, 60),
+    "sell": (10, 60),
+    "report": (10, 60),
 }
 
 # route signature -> rule name (matched by (method, path))
@@ -26,6 +28,8 @@ _ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/admin/login"): "admin_login",
     ("POST", "/checkout"): "checkout",
     ("GET", "/captcha.svg"): "captcha",
+    ("POST", "/sell"): "sell",
+    ("POST", "/product"): "report",  # matched via prefix below
 }
 
 _buckets: dict[str, list[float]] = defaultdict(list)
@@ -55,7 +59,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         rule = _ROUTES.get((request.method, request.url.path))
         if rule is None:
-            return await call_next(request)
+            # check prefix routes (e.g., /product/{pid}/report)
+            if request.method == "POST" and request.url.path.startswith("/product/") and request.url.path.endswith("/report"):
+                rule = "report"
+            if rule is None:
+                return await call_next(request)
 
         # Client address in memory only; reset by process restart.
         peer = request.client.host if request.client else "unknown"
