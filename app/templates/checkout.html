@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Checkout · {{ store_name }}{% endblock %}
+{% block title %}Checkout — {{ store_name }}{% endblock %}
 {% block content %}
 <h1>Checkout</h1>
 
@@ -21,6 +21,28 @@
 {% if key_ok %}
 {% if captcha_error %}<p class="warning">{{ captcha_error }}</p>{% endif %}
 <form method="post" action="/checkout" class="checkout-form">
+  <fieldset class="pay-methods">
+    <legend>Payment method</legend>
+    {% for key, label, desc in methods %}
+    <div class="pay-option">
+      <label>
+        <input type="radio" name="payment_method" value="{{ key }}"
+               {{ 'checked' if loop.first }}>
+        <strong>{{ label }}</strong>
+      </label>
+      <p class="muted">{{ desc }}</p>
+    </div>
+    {% endfor %}
+    {% if settlement_mode == 'escrow' %}
+    <p class="muted">Settlement mode: <strong>Temporary Escrow</strong> —
+       your payment is held until you confirm receipt of the order.</p>
+    {% else %}
+    <p class="muted">Settlement mode: <strong>Direct-to-Seller</strong> —
+       payments go straight to the seller's own wallet; the server never
+       holds private keys.</p>
+    {% endif %}
+  </fieldset>
+
   <label for="delivery_details">
     Delivery address &amp; notes
     <span class="muted">(will be PGP-encrypted before storage — only you can read it)</span>

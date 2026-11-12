@@ -25,8 +25,20 @@ CREATE TABLE IF NOT EXISTS store_settings (
     id                 INTEGER PRIMARY KEY CHECK (id = 1),
     store_name         TEXT NOT NULL DEFAULT 'NodeMarket Store',
     pgp_public_key     TEXT,
-    payment_provider   TEXT NOT NULL DEFAULT 'demo',
-    xpub               TEXT
+    payment_provider   TEXT NOT NULL DEFAULT 'demo',   -- legacy single-provider (v0.2)
+    xpub               TEXT,
+    -- v0.3 multi-currency switches (independent enable/disable)
+    btc_enabled        INTEGER NOT NULL DEFAULT 0,
+    btc_mode           TEXT    NOT NULL DEFAULT 'xpub', -- 'xpub' | 'rpc'
+    btc_rate           TEXT    NOT NULL DEFAULT '',     -- 1 fiat unit = N BTC (manual)
+    xmr_enabled        INTEGER NOT NULL DEFAULT 0,
+    xmr_address        TEXT    NOT NULL DEFAULT '',     -- main address (direct mode)
+    xmr_subaddresses   TEXT    NOT NULL DEFAULT '',     -- per-order rotation (direct mode)
+    xmr_rate           TEXT    NOT NULL DEFAULT '',     -- 1 fiat unit = N XMR (manual)
+    demo_enabled       INTEGER NOT NULL DEFAULT 1,
+    payout_btc_address TEXT    NOT NULL DEFAULT '',     -- escrow auto-release destination
+    payout_xmr_address TEXT    NOT NULL DEFAULT '',
+    settlement_mode    TEXT    NOT NULL DEFAULT 'direct' -- 'direct' | 'escrow'
 );
 
 INSERT OR IGNORE INTO store_settings (id) VALUES (1);
@@ -41,7 +53,17 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_label    TEXT    NOT NULL DEFAULT '',
     payment_details  TEXT    NOT NULL DEFAULT '',
     buyer_encrypted  TEXT    NOT NULL,          -- PGP ciphertext, never plaintext
-    created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+    created_at       TEXT    NOT NULL DEFAULT (datetime('now')),
+    settlement_mode  TEXT    NOT NULL DEFAULT 'direct' -- frozen at checkout
+);
+
+CREATE TABLE IF NOT EXISTS escrow_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    event      TEXT    NOT NULL,   -- resulting state or note
+    actor      TEXT    NOT NULL,   -- 'buyer' | 'admin' | 'system'
+    note       TEXT    NOT NULL DEFAULT '',
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -63,9 +85,41 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+_MIGRATIONS = {
+    "store_settings": {
+        "btc_enabled":        "INTEGER NOT NULL DEFAULT 0",
+        "btc_mode":           "TEXT    NOT NULL DEFAULT 'xpub'",
+        "btc_rate":           "TEXT    NOT NULL DEFAULT ''",
+        "xmr_enabled":        "INTEGER NOT NULL DEFAULT 0",
+        "xmr_address":        "TEXT    NOT NULL DEFAULT ''",
+        "xmr_subaddresses":   "TEXT    NOT NULL DEFAULT ''",
+        "xmr_rate":           "TEXT    NOT NULL DEFAULT ''",
+        "demo_enabled":       "INTEGER NOT NULL DEFAULT 1",
+        "payout_btc_address": "TEXT    NOT NULL DEFAULT ''",
+        "payout_xmr_address": "TEXT    NOT NULL DEFAULT ''",
+        "settlement_mode":    "TEXT    NOT NULL DEFAULT 'direct'",
+    },
+    "orders": {
+        "settlement_mode": "TEXT NOT NULL DEFAULT 'direct'",
+    },
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add v0.3 columns to databases created before v0.3 (idempotent)."""
+    for table, cols in _MIGRATIONS.items():
+        existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if not existing:
+            continue  # table will be created by the schema script below
+        for name, decl in cols.items():
+            if name not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+
+
 def init_db() -> None:
     conn = connect()
     try:
+        _migrate(conn)
         conn.executescript(_SCHEMA)
         conn.commit()
     finally:

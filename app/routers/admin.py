@@ -10,7 +10,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from .. import captcha
 from ..db import query, execute
 from ..pgp import validate_public_key
-from ..payments import get_provider, available
+from ..payments import get_provider
+from ..payments import escrow
 from ..security import (ADMIN_COOKIE, ADMIN_MAX_AGE, admin_session_create,
                         admin_session_valid, verify_admin_password)
 from ..templating import templates
@@ -89,12 +90,16 @@ def order_detail(request: Request, order_ref: str):
     guard = _guard(request)
     if guard:
         return guard
-    rows = query("SELECT * FROM orders WHERE order_ref = ?", (order_ref,))
-    if not rows:
+    order = escrow.get_order(order_ref)
+    if not order:
         return templates.TemplateResponse(request, "not_found.html", {"message": "Order not found."}, status_code=404)
-    order = dict(rows[0])
     items = query("SELECT * FROM order_items WHERE order_id = ?", (order["id"],))
-    return templates.TemplateResponse(request, "admin/order.html", {"order": order, "items": items})
+    events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+    return templates.TemplateResponse(
+        request, "admin/order.html",
+        {"order": order, "items": items, "events": events,
+         "allowed_status": sorted(escrow.TRANSITIONS[order["settlement_mode"]]
+                                  .get(order["status"], []))})
 
 
 @router.post("/orders/{order_ref}/status")
@@ -102,9 +107,14 @@ def order_set_status(request: Request, order_ref: str, status: str = Form(...)):
     guard = _guard(request)
     if guard:
         return guard
-    if status not in {"pending", "paid", "completed", "cancelled"}:
-        return RedirectResponse(f"/admin/orders/{order_ref}", status_code=303)
-    execute("UPDATE orders SET status = ? WHERE order_ref = ?", (status, order_ref))
+    order = escrow.get_order(order_ref)
+    if not order:
+        return RedirectResponse("/admin", status_code=303)
+    # Validated against the state machine - no silent lifecycle corruption.
+    try:
+        escrow.transition(order, status, "admin")
+    except escrow.TransitionError:
+        pass  # illegal move: just reload the page
     return RedirectResponse(f"/admin/orders/{order_ref}", status_code=303)
 
 
@@ -199,24 +209,44 @@ def settings_view(request: Request):
         "settings": row,
         "key_ok": key_ok,
         "key_msg": key_msg,
-        "providers": available(),
         "provider_valid": get_provider(row["payment_provider"]) is not None,
     })
+
+
+def _flag(form_value: str) -> int:
+    return 1 if form_value else 0
 
 
 @router.post("/settings")
 def settings_update(request: Request, store_name: str = Form(""),
                     pgp_public_key: str = Form(""),
-                    payment_provider: str = Form("demo"), xpub: str = Form("")):
+                    btc_enabled: str = Form(""), btc_mode: str = Form("xpub"),
+                    btc_rate: str = Form(""), xpub: str = Form(""),
+                    xmr_enabled: str = Form(""), xmr_address: str = Form(""),
+                    xmr_subaddresses: str = Form(""), xmr_rate: str = Form(""),
+                    demo_enabled: str = Form(""),
+                    payout_btc_address: str = Form(""),
+                    payout_xmr_address: str = Form(""),
+                    settlement_mode: str = Form("direct")):
     guard = _guard(request)
     if guard:
         return guard
-    provider = payment_provider if get_provider(payment_provider) else "demo"
+    settlement = settlement_mode if settlement_mode in {"direct", "escrow"} else "direct"
+    btc_mode = btc_mode if btc_mode in {"xpub", "rpc"} else "xpub"
     execute(
         """UPDATE store_settings
-           SET store_name = ?, pgp_public_key = ?, payment_provider = ?, xpub = ?
+           SET store_name = ?, pgp_public_key = ?,
+               btc_enabled = ?, btc_mode = ?, btc_rate = ?, xpub = ?,
+               xmr_enabled = ?, xmr_address = ?, xmr_subaddresses = ?,
+               xmr_rate = ?, demo_enabled = ?,
+               payout_btc_address = ?, payout_xmr_address = ?,
+               settlement_mode = ?
            WHERE id = 1""",
         (store_name.strip() or "NodeMarket Store", pgp_public_key.strip(),
-         provider, xpub.strip()),
+         _flag(btc_enabled), btc_mode, btc_rate.strip(), xpub.strip(),
+         _flag(xmr_enabled), xmr_address.strip(), xmr_subaddresses.strip(),
+         xmr_rate.strip(), _flag(demo_enabled),
+         payout_btc_address.strip(), payout_xmr_address.strip(),
+         settlement),
     )
     return RedirectResponse("/admin/settings", status_code=303)

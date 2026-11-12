@@ -31,6 +31,16 @@ class Settings:
         self.port: int = int(env.get("PORT", "8000"))
         self.trust_proxy: bool = env.get("TRUST_PROXY", "false").lower() == "true"
 
+        # v0.3 optional local wallet RPC (only used when the admin selects
+        # rpc mode / escrow auto-release). Loopback by default; never logged.
+        self.btc_rpc_url: str = env.get("BTC_RPC_URL", "http://127.0.0.1:8332")
+        self.btc_rpc_user: str = env.get("BTC_RPC_USER", "")
+        self.btc_rpc_password: str = env.get("BTC_RPC_PASSWORD", "")
+        self.xmr_rpc_url: str = env.get(
+            "XMR_WALLET_RPC_URL", "http://127.0.0.1:18082/json_rpc")
+        self.xmr_rpc_user: str = env.get("XMR_WALLET_RPC_USER", "")
+        self.xmr_rpc_password: str = env.get("XMR_WALLET_RPC_PASSWORD", "")
+
         secret = env.get("SECRET_KEY")
         if not secret or secret == "change-me-to-a-long-random-string":
             # Random per-boot fallback: sessions survive within one run only.

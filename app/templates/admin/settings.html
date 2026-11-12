@@ -1,24 +1,84 @@
 {% extends "admin/base.html" %}
-{% block title %}Settings · Admin · {{ store_name }}{% endblock %}
+{% block title %}Settings — Admin — {{ store_name }}{% endblock %}
 {% block admin_content %}
 <h2>Store settings</h2>
 
 <p class="key-status {{ 'ok' if key_ok else 'bad' }}">{{ key_msg }}</p>
 
 <form method="post" action="/admin/settings" class="stack-form">
+  <h3>General</h3>
   <label for="store_name">Store name</label>
   <input type="text" id="store_name" name="store_name" value="{{ settings['store_name'] }}" maxlength="80">
 
-  <label for="payment_provider">Payment provider</label>
-  <select id="payment_provider" name="payment_provider">
-    {% for provider in providers %}
-    <option value="{{ provider }}" {{ 'selected' if provider == settings['payment_provider'] }}>{{ provider }}</option>
-    {% endfor %}
-  </select>
+  <h3>Settlement mode</h3>
+  <label>
+    <input type="radio" name="settlement_mode" value="direct"
+           {{ 'checked' if settings['settlement_mode'] == 'direct' }}>
+    <strong>Direct-to-Seller</strong> (non-custodial, default) — per-order
+    addresses belong to your external wallet. The server never touches
+    private keys. You confirm payments manually.
+  </label>
+  <label>
+    <input type="radio" name="settlement_mode" value="escrow"
+           {{ 'checked' if settings['settlement_mode'] == 'escrow' }}>
+    <strong>Temporary Escrow</strong> (custodial) — payments are held until
+    the buyer confirms receipt. Requires an RPC-connected wallet to receive
+    funds; auto-release sweeps to the payout addresses below when RPC is
+    connected, otherwise pay out manually.
+  </label>
 
-  <label for="xpub">Xpub <span class="muted">(account-level extended public key for the xpub provider)</span></label>
-  <textarea id="xpub" name="xpub" rows="3" spellcheck="false">{{ settings['xpub'] or '' }}</textarea>
+  <h3>Payment methods</h3>
 
+  <fieldset>
+    <legend>
+      <input type="checkbox" name="btc_enabled" {{ 'checked' if settings['btc_enabled'] }}>
+      <strong>Bitcoin (BTC)</strong>
+    </legend>
+    <label for="btc_mode">Address source</label>
+    <select id="btc_mode" name="btc_mode">
+      <option value="xpub" {{ 'selected' if settings['btc_mode'] == 'xpub' }}>
+        xpub — BIP32 derivation, non-custodial (recommended)</option>
+      <option value="rpc" {{ 'selected' if settings['btc_mode'] == 'rpc' }}>
+        Bitcoin Core RPC — custodial node wallet (.env)</option>
+    </select>
+    <label for="xpub">Xpub <span class="muted">(account-level extended public key for xpub mode)</span></label>
+    <textarea id="xpub" name="xpub" rows="3" spellcheck="false">{{ settings['xpub'] or '' }}</textarea>
+    <label for="btc_rate">BTC exchange rate <span class="muted">(1 {{ 'USD' }} = N BTC, manual — leave empty to show fiat total only)</span></label>
+    <input type="text" id="btc_rate" name="btc_rate" value="{{ settings['btc_rate'] }}" spellcheck="false">
+  </fieldset>
+
+  <fieldset>
+    <legend>
+      <input type="checkbox" name="xmr_enabled" {{ 'checked' if settings['xmr_enabled'] }}>
+      <strong>Monero (XMR)</strong>
+    </legend>
+    <label for="xmr_address">Main address <span class="muted">(direct mode; used when no subaddresses are set)</span></label>
+    <input type="text" id="xmr_address" name="xmr_address" value="{{ settings['xmr_address'] }}" spellcheck="false">
+    <label for="xmr_subaddresses">Subaddresses <span class="muted">(comma/newline separated; each order rotates through them — per-order addresses without a server wallet)</span></label>
+    <textarea id="xmr_subaddresses" name="xmr_subaddresses" rows="3" spellcheck="false">{{ settings['xmr_subaddresses'] or '' }}</textarea>
+    <label for="xmr_rate">XMR exchange rate <span class="muted">(1 USD = N XMR, manual — leave empty to show fiat total only)</span></label>
+    <input type="text" id="xmr_rate" name="xmr_rate" value="{{ settings['xmr_rate'] }}" spellcheck="false">
+    <p class="muted">Wallet RPC connection (per-order subaddresses, custodial) is configured in .env: XMR_WALLET_RPC_URL.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>
+      <input type="checkbox" name="demo_enabled" {{ 'checked' if settings['demo_enabled'] }}>
+      <strong>Demo mode</strong> <span class="muted">(no real payment, for local testing)</span>
+    </legend>
+  </fieldset>
+
+  <h3>Escrow payouts (Temporary Escrow mode)</h3>
+  <p class="muted">Where released funds are swept by the auto-payout hook via
+  local RPC. Leave empty to always pay out manually.</p>
+  <label for="payout_btc_address">BTC payout address</label>
+  <input type="text" id="payout_btc_address" name="payout_btc_address"
+         value="{{ settings['payout_btc_address'] }}" spellcheck="false">
+  <label for="payout_xmr_address">XMR payout address</label>
+  <input type="text" id="payout_xmr_address" name="payout_xmr_address"
+         value="{{ settings['payout_xmr_address'] }}" spellcheck="false">
+
+  <h3>Buyer data encryption</h3>
   <label for="pgp_public_key">PGP public key <span class="muted">(ASCII-armored — buyer data is encrypted with it)</span></label>
   <textarea id="pgp_public_key" name="pgp_public_key" rows="10" spellcheck="false">{{ settings['pgp_public_key'] or '' }}</textarea>
 

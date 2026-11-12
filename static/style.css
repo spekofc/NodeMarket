@@ -255,9 +255,18 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 }
 
 .status-pending  { color: var(--muted); }
+.status-pending_payment { color: var(--muted); }
 .status-paid     { color: var(--ok); border-color: var(--ok); }
+.status-in_escrow { color: var(--ok); border-color: var(--ok); }
 .status-completed{ color: var(--accent); }
+.status-completed_released { color: var(--accent); }
+.status-disputed { color: var(--bad); border-color: var(--bad); }
 .status-cancelled{ color: var(--danger); border-color: var(--danger); }
+
+.ok-note { color: var(--ok); font-weight: 600; }
+.pay-methods { margin: 1rem 0; padding: 0.8rem; }
+.pay-option { margin: 0.6rem 0; }
+.pay-option label { display: inline; font-weight: 400; }
 
 .status-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
 

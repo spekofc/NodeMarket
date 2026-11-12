@@ -7,6 +7,7 @@
   <tr><th>Status</th><td><span class="status status-{{ order['status'] }}">{{ order['status'] }}</span></td></tr>
   <tr><th>Total</th><td>{{ order['total_cents'] | money }} {{ order['currency'] }}</td></tr>
   <tr><th>Provider</th><td>{{ order['payment_provider'] }} — {{ order['payment_label'] }}</td></tr>
+  <tr><th>Settlement</th><td>{{ order['settlement_mode'] }}</td></tr>
   <tr><th>Placed</th><td>{{ order['created_at'] }}</td></tr>
 </table>
 
@@ -33,11 +34,28 @@
 
 <h3>Actions</h3>
 <div class="status-actions">
-  {% for st in ['paid', 'completed', 'cancelled'] %}
+  {% for st in allowed_status %}
   <form method="post" action="/admin/orders/{{ order['order_ref'] }}/status" class="inline-form">
     <input type="hidden" name="status" value="{{ st }}">
-    <button type="submit">Mark {{ st }}</button>
+    <button type="submit">{{ st.replace('_', ' ') }}</button>
   </form>
   {% endfor %}
 </div>
+
+{% if events %}
+<h3>Escrow history</h3>
+<table class="admin-table">
+  <thead><tr><th>When</th><th>Event</th><th>Actor</th><th>Note</th></tr></thead>
+  <tbody>
+    {% for ev in events %}
+    <tr>
+      <td>{{ ev['created_at'] }}</td>
+      <td><strong>{{ ev['event'] }}</strong></td>
+      <td>{{ ev['actor'] }}</td>
+      <td>{{ ev['note'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 {% endblock %}

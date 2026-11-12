@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Order {{ order['order_ref'] }} · {{ store_name }}{% endblock %}
+{% block title %}Order {{ order['order_ref'] }} — {{ store_name }}{% endblock %}
 {% block content %}
 <h1>Order received</h1>
 
@@ -12,9 +12,51 @@
 <pre class="payment-details">{% for line in order['payment_details_lines'] %}{{ line }}
 {% endfor %}</pre>
 
+{% if order['settlement_mode'] == 'escrow' %}
+<h2>Escrow status</h2>
+{% if release_error %}<p class="warning">{{ release_error }}</p>{% endif %}
+
+{% if can_release %}
+<p>Your payment is held in escrow. When the delivery arrives and you are
+satisfied, release the funds to the seller:</p>
+<form method="post" action="/order/{{ order['order_ref'] }}/release">
+  <button type="submit">Confirm receipt &amp; release payment</button>
+</form>
+{% elif order['status'] == 'completed_released' %}
+<p class="ok-note">Payment released to the seller. Thank you!</p>
+{% elif order['status'] == 'disputed' %}
+<p class="warning">This order is in dispute. The store will resolve it from
+the admin panel.</p>
+{% elif order['status'] == 'cancelled' %}
+<p class="warning">This order was cancelled.</p>
+{% else %}
+<p class="muted">Waiting for payment confirmation. The seller moves this
+order into escrow once your payment is seen.</p>
+{% endif %}
+
+{% if events %}
+<h3>History</h3>
+<table class="cart-table">
+  <thead><tr><th>When</th><th>Event</th><th>By</th><th>Note</th></tr></thead>
+  <tbody>
+    {% for ev in events %}
+    <tr>
+      <td>{{ ev['created_at'] }}</td>
+      <td><strong>{{ ev['event'] }}</strong></td>
+      <td>{{ ev['actor'] }}</td>
+      <td>{{ ev['note'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}
+
 <p class="muted">
   Your delivery details were PGP-encrypted with the store's public key before
   being stored. Not even this server can read them.
 </p>
+<p class="muted">Bookmark this page — the reference above is the only way to
+track this order.</p>
 <p><a href="/">Back to catalog</a></p>
 {% endblock %}

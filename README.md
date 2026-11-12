@@ -29,10 +29,11 @@ modes, including Tor Browser at its highest security level.
   with the store owner's PGP public key *before* being written to the
   database. The server cannot read them — only the owner, with their private
   key, can.
-- **Modular payments.** A small provider interface with two built-in
-  providers: a clean `demo` mode and a self-contained `xpub` mode that
-  derives a unique native-SegWit (P2WPKH/bech32) Bitcoin address per order
-  via BIP32 — implemented in pure stdlib, no network calls.
+- **Modular payments.** A small provider interface with built-in providers:
+  a clean `demo` mode, self-contained Bitcoin (`btc`) via xpub BIP32
+  derivation or Bitcoin Core RPC, Monero (`xmr`) via store addresses or
+  monero-wallet-rpc — plus two configurable settlement modes
+  (Direct-to-Seller and Temporary Escrow). See [Payments (v0.3)](#payments-v03).
 - **Minimal stack.** Python 3.11+, FastAPI, Jinja2, SQLite. One `pip install`,
   one command to run.
 
@@ -62,8 +63,9 @@ Open `http://127.0.0.1:8000`.
 
 1. Sign in at `/admin` with `ADMIN_PASSWORD`.
 2. Go to **Settings**: set the store name, paste your ASCII-armored **PGP
-   public key**, and choose the payment provider (`demo` or `xpub` + your
-   account-level xpub).
+   public key**, enable the payment methods you accept (Bitcoin, Monero,
+   Demo) and pick the **settlement mode**. See
+   [Payments (v0.3)](#payments-v03) below.
 3. Add products under **Products**.
 4. At checkout, buyer delivery details are PGP-encrypted automatically. View
    orders in the admin panel as ciphertext and decrypt them locally:
@@ -71,6 +73,63 @@ Open `http://127.0.0.1:8000`.
 ```bash
 gpg --decrypt buyer-order.txt
 ```
+
+## Payments (v0.3)
+
+### Methods (independently enabled in `/admin/settings`)
+
+| Method | Address source (non-custodial) | Address source (custodial, optional) |
+|---|---|---|
+| **Bitcoin (BTC)** | `xpub` mode: unique P2WPKH (bech32) address derived per order via BIP32 public derivation — pure stdlib, no network calls, the server never sees a private key | `rpc` mode: local Bitcoin Core wallet issues `getnewaddress` per order (credentials in `.env`) |
+| **Monero (XMR)** | store main address, or a pasteable list of subaddresses rotated per order (per-order addresses, no server wallet) | local `monero-wallet-rpc` creates a dedicated subaddress per order (credentials in `.env`) |
+| **Demo** | no real payment — for testing | — |
+
+Buyers pick a method with plain HTML radio buttons at checkout. No
+exchange-rate API is ever contacted: the admin may set a manual
+`1 fiat = N coins` rate per method, or show the fiat total only.
+
+### Settlement modes
+
+**Direct-to-Seller (non-custodial, default).** The checkout address belongs
+to the seller's external wallet. The server holds no private keys, cannot
+spend anything, and status tracking (`pending_payment → paid → completed`)
+is manual bookkeeping. You are responsible for watching your own wallet and
+marking payments as received.
+
+**Temporary Escrow (custodial).** For storefronts that want to guarantee
+delivery: the payment is received in an RPC-connected custodian wallet and
+only moves to the seller after the buyer confirms receipt.
+
+```
+pending_payment ──> in_escrow ──> completed_released
+                        │  ▲
+                        ▼  │ (admin resolves)
+                     disputed
+pending_payment ──> cancelled (either mode, before settlement)
+```
+
+- The buyer confirms receipt on the order tracking page
+  (`/order/<token>` — **Confirm receipt & release payment**, one click,
+  zero JS, CSRF-hardened via the Origin check).
+- On release, `EscrowEngine` (`app/payments/escrow.py`) fires an
+  auto-payout hook that sweeps the custodian balance to the configured
+  payout address via local RPC (`sendall` / `sweep_all`).
+- If the RPC is not connected, the hook logs the pending payout in the
+  escrow history and the admin pays out manually from the wallet —
+  the release itself never depends on RPC availability.
+
+**Security trade-off, stated plainly:** Direct-to-Seller means the server
+operator *cannot* steal your funds but also *cannot* refund or guarantee
+them. Temporary Escrow means the custodian wallet (your node, your keys)
+holds funds for hours-to-days — it can spend them, so it must be yours and
+must be kept safe. NodeMarket ships Direct as the default.
+
+### Order tracking
+
+No user accounts exist. At checkout each order gets a 128-bit random
+tracking token: the URL `http://your-store/order/<token>` is the only
+credential. It shows live status, the escrow history table (when in escrow
+mode) and the release button while the order is `in_escrow`.
 
 ## Security model
 
