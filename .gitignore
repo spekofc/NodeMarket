@@ -9,3 +9,4 @@ data/*.db-shm
 *.egg-info/
 build/
 dist/
+test_pgp_key.*
