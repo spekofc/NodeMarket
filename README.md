@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" width="180" alt="NodeMarket logo">
+</p>
+
 # NodeMarket
 
 A privacy-first, dependency-light e-commerce engine for independent stores.

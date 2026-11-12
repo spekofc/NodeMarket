@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <title>{% block title %}{{ store_name }}{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -15,7 +16,7 @@
   <noscript><style>.js-banner{display:none !important;}</style></noscript>
 
   <header class="site-header">
-    <a class="brand" href="/">{{ store_name }}</a>
+    <a class="brand" href="/"><img src="/static/logo.png" alt="" width="22" height="22" class="brand-logo">{{ store_name }}</a>
     <nav>
       <a href="/">Catalog</a>
       <a href="/cart">Cart</a>
