@@ -122,7 +122,14 @@ def checkout_place(request: Request, delivery_details: str = Form(""),
 
     # Minimal buyer context inside the encrypted payload - nothing else is stored.
     buyer_text = delivery_details.strip() or "(no delivery details provided)"
-    ciphertext = encrypt_for_store(armored, buyer_text)
+    try:
+        ciphertext = encrypt_for_store(armored, buyer_text)
+    except Exception:
+        # Fail closed even when the key parses but cannot encrypt
+        # (e.g. no encryption subkey): 400, no row, no plaintext anywhere.
+        ctx, _ = _checkout_context(totals, settings_row)
+        return templates.TemplateResponse(
+            request, "checkout.html", ctx, status_code=400)
 
     provider = get_provider(payment_method) or get_provider("demo")
     provider_settings = dict(settings_row)  # Row -> dict (providers use .get)

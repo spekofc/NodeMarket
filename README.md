@@ -131,9 +131,29 @@ tracking token: the URL `http://your-store/order/<token>` is the only
 credential. It shows live status, the escrow history table (when in escrow
 mode) and the release button while the order is `in_escrow`.
 
+## Transport security (read before deploying)
+
+NodeMarket encrypts buyer delivery data **at rest** (PGP, before the row is
+written). It does **not** encrypt the hop between the buyer's browser and
+your server — that is the operator's job:
+
+- **HTTPS**: put a TLS-terminating reverse proxy (nginx, Caddy, Traefik…) in
+  front of NodeMarket. Without TLS, delivery addresses and the order-tracking
+  URL travel in cleartext from the browser to your server, where the PGP
+  layer only then encrypts them for storage.
+- **Tor hidden service (`.onion`)**: the zero-JS, no-logging design makes
+  NodeMarket well suited to onion service deployment — no external calls, no
+  CDNs, no analytics to break, and Tor Browser at its highest security level
+  is a first-class client.
+- Never expose NodeMarket directly over plain HTTP on a public IP. The
+  default bind is `127.0.0.1` for exactly this reason; if you set
+  `HOST=0.0.0.0`, you must have TLS or an onion service in front.
+
 ## Security model
 
 | Layer | Behavior |
+|---|---|
+| Transport | **operator's responsibility**: serve behind HTTPS (reverse proxy) or as a Tor hidden service (`.onion`) — see [Transport security](#transport-security-read-before-deploying) |
 |---|---|
 | CSP | `default-src 'self'; script-src 'none'; frame-ancestors 'none'` |
 | Referrer | `no-referrer` (header and meta) |
