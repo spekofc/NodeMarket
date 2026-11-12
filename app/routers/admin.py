@@ -7,6 +7,7 @@ locally with their private key. The server cannot read it.
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from .. import captcha
 from ..db import query, execute
 from ..pgp import validate_public_key
 from ..payments import get_provider, available
@@ -33,14 +34,28 @@ def _guard(request: Request):
 def login_view(request: Request):
     if _authed(request):
         return RedirectResponse("/admin", status_code=303)
-    return templates.TemplateResponse(request, "admin/login.html", {})
+    token = captcha.new_challenge()
+    return templates.TemplateResponse(request, "admin/login.html", {"captcha_token": token})
 
 
 @router.post("/login")
-def login_submit(request: Request, password: str = Form("")):
+def login_submit(request: Request, password: str = Form(""),
+                 captcha_token: str = Form(""), captcha_answer: str = Form("")):
+    # CAPTCHA first: brute force never even reaches the password check.
+    if not captcha.verify(captcha_token, captcha_answer):
+        token = captcha.new_challenge()
+        return templates.TemplateResponse(
+            request, "admin/login.html",
+            {"error": "Wrong or expired captcha answer.", "captcha_token": token},
+            status_code=401,
+        )
     if not verify_admin_password(password):
-        return templates.TemplateResponse(request, "admin/login.html",
-                                          {"error": "Wrong password."}, status_code=401)
+        token = captcha.new_challenge()
+        return templates.TemplateResponse(
+            request, "admin/login.html",
+            {"error": "Wrong password.", "captcha_token": token},
+            status_code=401,
+        )
     response = RedirectResponse("/admin", status_code=303)
     response.set_cookie(ADMIN_COOKIE, admin_session_create(), httponly=True,
                         samesite="lax", path="/", max_age=ADMIN_MAX_AGE)

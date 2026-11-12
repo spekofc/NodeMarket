@@ -6,6 +6,14 @@ Runs on Python + FastAPI + SQLite, renders pure HTML5/CSS, and ships with
 checkout, account-free ordering) works in the strictest browser security
 modes, including Tor Browser at its highest security level.
 
+## Screenshots
+
+![Admin Panel](docs/admin-preview.png)
+*[Print da tela de admin aqui]*
+
+![Storefront](docs/storefront-preview.png)
+*[Print da vitrine aqui]*
+
 ## Philosophy
 
 - **Privacy-first, not privacy-decorated.** There is no analytics, no
@@ -74,12 +82,16 @@ gpg --decrypt buyer-order.txt
 | CSRF | SameSite=Lax cookies + cross-origin POST rejection (Origin check) |
 | Sessions | itsdangerous-signed cookies, HttpOnly, SameSite=Lax |
 | Admin auth | constant-time password comparison, 12h signed session |
+| Captcha | self-hosted, zero-JS SVG challenge on admin login and checkout; answer lives only in process RAM, keyed by a single-use signed token with 5-minute expiry; no database state |
+| JS detector | pure-CSS banner visible only when JavaScript is enabled (hidden via `<noscript><style>`), fully compatible with `script-src 'none'` |
+| Rate limiting | in-memory sliding window on admin login, checkout and captcha routes; client addresses never touch disk or logs; automatic bucket sweep |
 | Buyer data | PGP-encrypted before persistence; fail-closed checkout without a valid key |
 | Logging | none — access log disabled, nothing about the requester is stored |
 
-Out of scope by design (documented, not hidden): no server-side rate
-limiting (put your reverse proxy in front), no DDoS protection, no
-JavaScript-free image handling beyond static files.
+Out of scope by design (documented, not hidden): the CAPTCHA and rate-limit
+stores are per-process (single uvicorn process; scale out behind a reverse
+proxy if needed), no DDoS protection, no JavaScript-free image handling
+beyond static files.
 
 ## Attribution / Forks
 

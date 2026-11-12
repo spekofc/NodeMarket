@@ -151,6 +151,29 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 
 .checkout-form button { margin-top: 0.8rem; }
 
+/* JS detector banner: shown unless <noscript> hides it (JS off = hidden). */
+
+.js-banner {
+  background: var(--danger);
+  color: var(--bg);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.35rem 1rem;
+}
+
+/* captcha */
+
+.captcha-img {
+  display: block;
+  border: 1px solid var(--border);
+  margin: 0.4rem 0;
+  border-radius: 2px;
+}
+
+.captcha-input {
+  max-width: 8rem;
+}
+
 /* cart & tables */
 
 .cart-table, .admin-table, .detail-table {

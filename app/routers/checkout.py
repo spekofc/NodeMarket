@@ -7,6 +7,7 @@ import secrets
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from .. import captcha
 from ..db import query, execute
 from ..pgp import encrypt_for_store, validate_public_key
 from ..payments import get_provider
@@ -42,19 +43,37 @@ def checkout_view(request: Request):
         return RedirectResponse("/cart", status_code=303)
     settings_row = query("SELECT pgp_public_key, payment_provider FROM store_settings WHERE id = 1")[0]
     key_ok, key_msg = validate_public_key(settings_row["pgp_public_key"] or "")
+    token = captcha.new_challenge() if key_ok else ""
     return templates.TemplateResponse(request, "checkout.html", {
         "cart": totals,
         "key_ok": key_ok,
         "key_msg": key_msg,
         "provider_name": settings_row["payment_provider"],
+        "captcha_token": token,
     })
 
 
 @router.post("/checkout")
-def checkout_place(request: Request, delivery_details: str = Form("")):
+def checkout_place(request: Request, delivery_details: str = Form(""),
+                   captcha_token: str = Form(""), captcha_answer: str = Form("")):
     totals = _cart_totals(request)
     if not totals:
         return RedirectResponse("/cart", status_code=303)
+
+    # CAPTCHA first: spam never reaches order creation or the database.
+    if not captcha.verify(captcha_token, captcha_answer):
+        settings_row = query(
+            "SELECT pgp_public_key, payment_provider FROM store_settings WHERE id = 1"
+        )[0]
+        ok, msg = validate_public_key(settings_row["pgp_public_key"] or "")
+        return templates.TemplateResponse(
+            request, "checkout.html",
+            {"cart": totals, "key_ok": ok, "key_msg": msg,
+             "provider_name": settings_row["payment_provider"],
+             "captcha_token": captcha.new_challenge() if ok else "",
+             "captcha_error": "Wrong or expired captcha answer."},
+            status_code=400,
+        )
 
     settings_row = query(
         "SELECT pgp_public_key, payment_provider FROM store_settings WHERE id = 1"

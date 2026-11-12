@@ -12,7 +12,8 @@ from urllib.parse import urlparse
 from .config import settings
 from .db import init_db
 from .templating import templates
-from .routers import catalog, cart, checkout, admin
+from .routers import catalog, cart, checkout, admin, captcha
+from .ratelimit import RateLimitMiddleware
 
 CSP = (
     "default-src 'self'; "
@@ -64,6 +65,7 @@ class CartLoadMiddleware(BaseHTTPMiddleware):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="NodeMarket", docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(CartLoadMiddleware)
     app.add_middleware(OriginCheckMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
@@ -74,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(cart.router)
     app.include_router(checkout.router)
     app.include_router(admin.router)
+    app.include_router(captcha.router)
 
     @app.on_event("startup")
     def startup() -> None:
