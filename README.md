@@ -8,11 +8,10 @@ modes, including Tor Browser at its highest security level.
 
 ## Screenshots
 
-![Admin Panel](docs/admin-preview.png)
-*[Print da tela de admin aqui]*
+<img width="1875" height="947" alt="{D8E89270-A637-4F8B-8D51-160FC8B85DA1}" src="https://github.com/user-attachments/assets/68d77b67-2098-4c30-a3c0-6c708fed6920" />
 
-![Storefront](docs/storefront-preview.png)
-*[Print da vitrine aqui]*
+<img width="1877" height="943" alt="{70584371-D688-4722-8036-C507ECC5E9D3}" src="https://github.com/user-attachments/assets/53ad0e1d-bd01-445c-8e7f-73789c26c0d3" />
+
 
 ## Philosophy
 
