@@ -301,3 +301,31 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 .inline-new { display: flex; gap: 0.6rem; align-items: center; max-width: 30rem; }
 .inline-new input[type="text"] { flex: 1; }
 .row-actions { display: flex; gap: 0.8rem; align-items: center; white-space: nowrap; }
+
+/* order messages */
+
+.order-messages { max-width: 48rem; }
+.thread { margin: 1.5rem 0; }
+.msg {
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.8rem;
+  margin-bottom: 0.6rem;
+  background: var(--bg);
+}
+.msg.seller { border-color: var(--accent); }
+.msg-header { display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; }
+.msg-header .muted { font-size: 0.8rem; }
+.msg-body { white-space: pre-wrap; font-family: inherit; margin: 0; }
+
+.compose { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+/* report form */
+
+.product-report { max-width: 40rem; }
+.report-link { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.report-link a { color: var(--bad); font-size: 0.9rem; }
+
+/* admin reports table */
+
+.admin-table pre.ciphertext { max-width: 30rem; }

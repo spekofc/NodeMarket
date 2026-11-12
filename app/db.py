@@ -81,6 +81,24 @@ CREATE TABLE IF NOT EXISTS order_items (
     qty              INTEGER NOT NULL,
     unit_price_cents INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS order_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id   INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    author     TEXT    NOT NULL,          -- 'buyer' | 'seller'
+    body       TEXT    NOT NULL,          -- PGP ciphertext (buyer) or plaintext (seller)
+    is_encrypted INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS reports (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id  INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    reason      TEXT    NOT NULL,
+    description TEXT    NOT NULL DEFAULT '',
+    status      TEXT    NOT NULL DEFAULT 'open',  -- 'open' | 'archived' | 'actioned'
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 

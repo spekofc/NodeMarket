@@ -95,9 +95,10 @@ def order_detail(request: Request, order_ref: str):
         return templates.TemplateResponse(request, "not_found.html", {"message": "Order not found."}, status_code=404)
     items = query("SELECT * FROM order_items WHERE order_id = ?", (order["id"],))
     events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+    messages = query("SELECT * FROM order_messages WHERE order_id = ? ORDER BY id", (order["id"],))
     return templates.TemplateResponse(
         request, "admin/order.html",
-        {"order": order, "items": items, "events": events,
+        {"order": order, "items": items, "events": events, "messages": messages,
          "allowed_status": sorted(escrow.TRANSITIONS[order["settlement_mode"]]
                                   .get(order["status"], []))})
 
@@ -347,3 +348,40 @@ def settings_update(request: Request, store_name: str = Form(""),
          settlement),
     )
     return RedirectResponse("/admin/settings", status_code=303)
+
+
+# --- reports moderation ----------------------------------------------------------
+
+@router.get("/reports", response_class=HTMLResponse)
+def reports_view(request: Request):
+    guard = _guard(request)
+    if guard:
+        return guard
+    reports = query(
+        """SELECT r.*, p.name AS product_name
+           FROM reports r
+           JOIN products p ON p.id = r.product_id
+           ORDER BY r.id DESC""")
+    return templates.TemplateResponse(request, "admin/reports.html", {"reports": reports})
+
+
+@router.post("/reports/{rid}/archive")
+def report_archive(request: Request, rid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    execute("UPDATE reports SET status = 'archived' WHERE id = ?", (rid,))
+    return RedirectResponse("/admin/reports", status_code=303)
+
+
+@router.post("/reports/{rid}/action")
+def report_action(request: Request, rid: int):
+    """Mark report as actioned and deactivate the product."""
+    guard = _guard(request)
+    if guard:
+        return guard
+    row = query("SELECT product_id FROM reports WHERE id = ?", (rid,))
+    if row:
+        execute("UPDATE products SET active = 0 WHERE id = ?", (row[0]["product_id"],))
+        execute("UPDATE reports SET status = 'actioned' WHERE id = ?", (rid,))
+    return RedirectResponse("/admin/reports", status_code=303)

@@ -58,4 +58,28 @@
   </tbody>
 </table>
 {% endif %}
+
+{% set messages = messages if messages is defined else [] %}
+{% if messages %}
+<h3>Messages</h3>
+<table class="admin-table">
+  <thead><tr><th>When</th><th>From</th><th>Message</th></tr></thead>
+  <tbody>
+    {% for m in messages %}
+    <tr>
+      <td>{{ m['created_at'] }}</td>
+      <td><strong>{{ m['author'] }}</strong>{% if m['is_encrypted'] %} <span class="status status-pending">(encrypted)</span>{% endif %}</td>
+      <td><pre class="ciphertext">{{ m['body'] }}</pre></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h3>Reply to buyer</h3>
+<form method="post" action="/admin/orders/{{ order['order_ref'] }}/messages" class="stack-form">
+  <label for="msg_body">Message (plaintext — buyer reads it directly)</label>
+  <textarea id="msg_body" name="body" rows="4" required></textarea>
+  <button type="submit">Send reply</button>
+</form>
 {% endblock %}

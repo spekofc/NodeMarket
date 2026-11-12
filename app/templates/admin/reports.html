@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+{% block title %}Reports · Admin{% endblock %}
+{% block admin_content %}
+<h2>Product Reports</h2>
+<p class="muted">Community-reported listings. Review, archive, or deactivate products.</p>
+
+{% if reports %}
+<table>
+  <thead><tr><th>ID</th><th>Product</th><th>Reason</th><th>Description</th><th>Status</th><th>Reported</th><th></th></tr></thead>
+  <tbody>
+    {% for r in reports %}
+    <tr>
+      <td>{{ r['id'] }}</td>
+      <td><a href="/product/{{ r['product_id'] }}">{{ r['product_name'] }}</a></td>
+      <td><span class="status status-{{ r['status'] }}">{{ r['reason'] }}</span></td>
+      <td class="muted">{{ r['description'][:120] }}{% if r['description']|length > 120 %}…{% endif %}</td>
+      <td>
+        {% if r['status'] == 'open' %}<span class="status status-pending">Open</span>
+        {% elif r['status'] == 'archived' %}<span class="status status-completed">Archived</span>
+        {% else %}<span class="status status-disputed">Actioned</span>{% endif %}
+      </td>
+      <td>{{ r['created_at'] }}</td>
+      <td class="row-actions">
+        {% if r['status'] == 'open' %}
+        <form method="post" action="/admin/reports/{{ r['id'] }}/archive" class="inline-form">
+          <button type="submit">Archive</button>
+        </form>
+        <form method="post" action="/admin/reports/{{ r['id'] }}/action" class="inline-form"
+              onsubmit="return confirm('Deactivate this product? This action cannot be undone from this panel.');">
+          <button type="submit" class="danger">Deactivate product</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No reports yet.</p>
+{% endif %}
+{% endblock %}

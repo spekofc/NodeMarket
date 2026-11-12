@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Messages for Order {{ order['order_ref'] }} — {{ store_name }}{% endblock %}
+{% block content %}
+<article class="order-messages">
+  <p><a href="/">&larr; Back to catalog</a> | <a href="/order/{{ order['order_ref'] }}">Order summary</a></p>
+  <h1>Messages for Order <strong>{{ order['order_ref'] }}</strong></h1>
+
+  <p class="muted">Reference: <code>{{ order['order_ref'] }}</code> &nbsp;|&nbsp; Status: <strong>{{ order['status'] }}</strong></p>
+
+  {% if msg_error %}<p class="warning">{{ msg_error }}</p>{% endif %}
+
+  <section class="thread">
+    {% if messages %}
+      {% for m in messages %}
+      <div class="msg {{ 'seller' if m['author'] == 'seller' else 'buyer' }}">
+        <div class="msg-header">
+          <strong>{{ 'Store' if m['author'] == 'seller' else 'You' }}</strong>
+          <span class="muted">{{ m['created_at'] }}</span>
+          {% if m['is_encrypted'] %}<span class="status status-pending">PGP encrypted</span>{% endif %}
+        </div>
+        <pre class="msg-body">{{ m['body'] }}</pre>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty">No messages yet. Start the conversation below.</p>
+    {% endif %}
+  </section>
+
+  <section class="compose">
+    <h2>Send a message to the store</h2>
+    <form method="post" action="/order/{{ order['order_ref'] }}/messages" class="stack-form">
+      <label for="body">Message</label>
+      <textarea id="body" name="body" rows="5" required placeholder="Type your message here…"></textarea>
+
+      <fieldset class="pgp-mode">
+        <legend>Encryption</legend>
+        <div class="pay-option">
+          <label>
+            <input type="radio" name="pgp_mode" value="encrypt" checked>
+            <strong>Encrypt with store's PGP key</strong>
+          </label>
+          <p class="muted">Only the store can read it. Requires a valid store PGP key.</p>
+        </div>
+        <div class="pay-option">
+          <label>
+            <input type="radio" name="pgp_mode" value="plain">
+            <strong>Send as plaintext</strong>
+          </label>
+          <p class="muted">Visible to anyone with the order link. Use only for non-sensitive info.</p>
+        </div>
+      </fieldset>
+
+      <label for="captcha_answer">Captcha
+        <span class="muted">(type the result of the calculation shown)</span>
+      </label>
+      <img src="/captcha.svg?token={{ captcha_token }}" alt="captcha challenge"
+           width="170" height="56" class="captcha-img">
+      <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+      <input type="text" id="captcha_answer" name="captcha_answer"
+             autocomplete="off" required maxlength="8" inputmode="numeric"
+             class="captcha-input">
+
+      <button type="submit">Send message</button>
+    </form>
+  </section>
+</article>
+{% endblock %}

@@ -72,7 +72,12 @@ Open `http://127.0.0.1:8000`.
 4. At checkout, buyer delivery details are PGP-encrypted automatically.
    Privacy purists can instead pre-encrypt their own details with their own
    key ("Bring your own PGP") — the server stores the block unreadable.
-   View orders in the admin panel as ciphertext and decrypt them locally:
+5. Buyers and sellers communicate securely on the order page (`/order/<token>/messages`)
+   — messages are PGP-encrypted by default, no accounts needed.
+6. Shoppers can **Report listing** on any product page — CAPTCHA-protected,
+   visible in `/admin/reports` for moderation (archive or deactivate product).
+
+View orders in the admin panel as ciphertext and decrypt them locally:
 
 ```bash
 gpg --decrypt buyer-order.txt
@@ -179,6 +184,24 @@ No user accounts exist. At checkout each order gets a 128-bit random
 tracking token: the URL `http://your-store/order/<token>` is the only
 credential. It shows live status, the escrow history table (when in escrow
 mode) and the release button while the order is `in_escrow`.
+
+### Order messaging (v0.5)
+
+Buyers and sellers communicate on the order page without any accounts:
+- Visit `/order/<token>/messages` to read and write messages
+- Buyer messages are **PGP-encrypted by default** with the store's public key
+  (option to send plaintext for non-sensitive info)
+- Seller replies from `/admin/orders/<ref>` are stored as plaintext
+- Rate-limited and CAPTCHA-protected (SVG math challenge)
+- Zero JavaScript, pure HTML forms
+
+### Product reporting (v0.5)
+
+Any shopper can flag a listing via **Report listing** on the product page:
+- CAPTCHA-protected form with reason dropdown + optional description
+- Reports appear in `/admin/reports` for the store operator
+- Actions: **Archive** (dismiss) or **Deactivate product** (one click)
+- Zero JavaScript, pure HTML forms
 
 ## Transport security (read before deploying)
 

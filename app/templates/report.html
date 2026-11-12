@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Report: {{ product['name'] }} — {{ store_name }}{% endblock %}
+{% block content %}
+<article class="product-report">
+  <p><a href="/product/{{ product['id'] }}">&larr; Back to product</a></p>
+  <h1>Report listing</h1>
+  <p class="muted"><strong>{{ product['name'] }}</strong> (ID: {{ product['id'] }})</p>
+
+  {% if error %}<p class="warning">{{ error }}</p>{% endif %}
+  {% if success %}<p class="ok-note">{{ success }}</p>{% endif %}
+
+  <form method="post" action="/product/{{ product['id'] }}/report" class="stack-form">
+    <label for="reason">Reason <span class="muted">(required)</span></label>
+    <select id="reason" name="reason" required>
+      <option value="">— Select a reason —</option>
+      <option value="illegal">Illegal content / prohibited items</option>
+      <option value="scam">Scam / fraud / misleading</option>
+      <option value="spam">Spam / duplicate listing</option>
+      <option value="wrong_category">Wrong category</option>
+      <option value="offensive">Offensive / hateful / abusive</option>
+      <option value="other">Other</option>
+    </select>
+
+    <label for="description">Additional details <span class="muted">(optional)</span></label>
+    <textarea id="description" name="description" rows="4"
+              placeholder="Any extra context that helps us review this report…"></textarea>
+
+    <label for="captcha_answer">Captcha
+      <span class="muted">(type the result of the calculation shown)</span>
+    </label>
+    <img src="/captcha.svg?token={{ captcha_token }}" alt="captcha challenge"
+         width="170" height="56" class="captcha-img">
+    <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+    <input type="text" id="captcha_answer" name="captcha_answer"
+           autocomplete="off" required maxlength="8" inputmode="numeric"
+           class="captcha-input">
+
+    <button type="submit">Submit report</button>
+  </form>
+</article>
+{% endblock %}

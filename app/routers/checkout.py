@@ -16,7 +16,7 @@ from ..db import query, execute
 from ..pgp import encrypt_for_store, validate_public_key, validate_pgp_message
 from ..payments import get_provider
 from ..payments import escrow
-from ..security import cart_load, CART_COOKIE
+from ..security import cart_load, CART_COOKIE, admin_session_valid
 from ..templating import templates
 
 router = APIRouter()
@@ -229,3 +229,112 @@ def order_release(request: Request, order_ref: str):
         {"order": order, "events": events,
          "can_release": order["status"] == "in_escrow",
          "release_error": error})
+
+
+# --- order messaging (zero-JS, no accounts) -----------------------------------
+
+@router.get("/order/{order_ref}/messages", response_class=HTMLResponse)
+def order_messages_view(request: Request, order_ref: str):
+    """Buyer-side message thread for an order."""
+    order = escrow.get_order(order_ref)
+    if not order:
+        return templates.TemplateResponse(
+            request, "not_found.html", {"message": "Order not found."}, status_code=404)
+    messages = query(
+        "SELECT * FROM order_messages WHERE order_id = ? ORDER BY id",
+        (order["id"],))
+    events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+    order["payment_details_lines"] = order["payment_details"].splitlines()
+    return templates.TemplateResponse(
+        request, "order_messages.html",
+        {"order": order, "messages": messages, "events": events,
+         "can_release": order["status"] == "in_escrow",
+         "captcha_token": captcha.new_challenge()})
+
+
+@router.post("/order/{order_ref}/messages")
+def order_message_send(request: Request, order_ref: str,
+                       body: str = Form(""),
+                       pgp_mode: str = Form("encrypt"),
+                       captcha_token: str = Form(""), captcha_answer: str = Form("")):
+    """Buyer sends a message to the seller (encrypted by default)."""
+    order = escrow.get_order(order_ref)
+    if not order:
+        return templates.TemplateResponse(
+            request, "not_found.html", {"message": "Order not found."}, status_code=404)
+
+    # CAPTCHA rate limiting on message sends
+    if not captcha.verify(captcha_token, captcha_answer):
+        messages = query(
+            "SELECT * FROM order_messages WHERE order_id = ? ORDER BY id",
+            (order["id"],))
+        events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+        order["payment_details_lines"] = order["payment_details"].splitlines()
+        return templates.TemplateResponse(
+            request, "order_messages.html",
+            {"order": order, "messages": messages, "events": events,
+             "can_release": order["status"] == "in_escrow",
+             "msg_error": "Wrong or expired captcha answer.",
+             "captcha_token": captcha.new_challenge()},
+            status_code=400)
+
+    body = body.strip()
+    if not body:
+        messages = query(
+            "SELECT * FROM order_messages WHERE order_id = ? ORDER BY id",
+            (order["id"],))
+        events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+        order["payment_details_lines"] = order["payment_details"].splitlines()
+        return templates.TemplateResponse(
+            request, "order_messages.html",
+            {"order": order, "messages": messages, "events": events,
+             "can_release": order["status"] == "in_escrow",
+             "msg_error": "Message cannot be empty.",
+             "captcha_token": captcha.new_challenge()},
+            status_code=400)
+
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")[0]
+    armored = settings_row["pgp_public_key"] or ""
+    key_ok, _ = validate_public_key(armored)
+
+    if pgp_mode == "encrypt" and key_ok:
+        try:
+            ciphertext = encrypt_for_store(armored, body)
+            is_encrypted = 1
+        except Exception:
+            ciphertext = body
+            is_encrypted = 0
+    else:
+        # plaintext or store key unavailable
+        ciphertext = body
+        is_encrypted = 0
+
+    execute(
+        "INSERT INTO order_messages (order_id, author, body, is_encrypted) VALUES (?, 'buyer', ?, ?)",
+        (order["id"], ciphertext, is_encrypted))
+
+    return RedirectResponse(f"/order/{order_ref}/messages", status_code=303)
+
+
+# Admin-side: seller replies to buyer
+@router.post("/admin/orders/{order_ref}/messages")
+def admin_order_message_reply(request: Request, order_ref: str, body: str = Form("")):
+    """Seller replies to buyer from admin panel."""
+    guard = admin_session_valid(request.cookies.get("nm_admin"))
+    if not guard:
+        return RedirectResponse("/admin/login", status_code=303)
+
+    order = escrow.get_order(order_ref)
+    if not order:
+        return RedirectResponse("/admin", status_code=303)
+
+    body = body.strip()
+    if not body:
+        return RedirectResponse(f"/admin/orders/{order_ref}", status_code=303)
+
+    # Seller replies are stored as plaintext (buyer can read them directly)
+    execute(
+        "INSERT INTO order_messages (order_id, author, body, is_encrypted) VALUES (?, 'seller', ?, 0)",
+        (order["id"], body))
+
+    return RedirectResponse(f"/admin/orders/{order_ref}", status_code=303)

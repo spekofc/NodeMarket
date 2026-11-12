@@ -3,7 +3,8 @@
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..db import query
+from .. import captcha
+from ..db import query, execute
 from ..security import cart_dump, CART_COOKIE
 from ..templating import templates
 
@@ -78,3 +79,47 @@ def cart_add(request: Request, pid: int = Form(...), qty: int = Form(1)):
     response.set_cookie(CART_COOKIE, cart_dump(cart), httponly=True,
                         samesite="lax", path="/", max_age=30 * 24 * 3600)
     return response
+
+
+# --- product reporting (zero-JS, CAPTCHA-protected) --------------------------
+
+@router.get("/product/{pid}/report", response_class=HTMLResponse)
+def report_view(request: Request, pid: int):
+    product = _product_or_none(pid)
+    if not product:
+        return templates.TemplateResponse(request, "not_found.html", {"message": "Product not found."}, status_code=404)
+    return templates.TemplateResponse(request, "report.html", {
+        "product": product, "captcha_token": captcha.new_challenge()})
+
+
+@router.post("/product/{pid}/report")
+def report_submit(request: Request, pid: int,
+                  reason: str = Form(""), description: str = Form(""),
+                  captcha_token: str = Form(""), captcha_answer: str = Form("")):
+    product = _product_or_none(pid)
+    if not product:
+        return templates.TemplateResponse(request, "not_found.html", {"message": "Product not found."}, status_code=404)
+
+    if not captcha.verify(captcha_token, captcha_answer):
+        return templates.TemplateResponse(request, "report.html", {
+            "product": product,
+            "captcha_token": captcha.new_challenge(),
+            "error": "Wrong or expired captcha answer."},
+            status_code=400)
+
+    reason = reason.strip()
+    if not reason:
+        return templates.TemplateResponse(request, "report.html", {
+            "product": product,
+            "captcha_token": captcha.new_challenge(),
+            "error": "Please select a reason."},
+            status_code=400)
+
+    execute(
+        "INSERT INTO reports (product_id, reason, description) VALUES (?, ?, ?)",
+        (pid, reason, description.strip()))
+
+    return templates.TemplateResponse(request, "report.html", {
+        "product": product,
+        "captcha_token": captcha.new_challenge(),
+        "success": "Report submitted. Thank you for keeping the store safe."})
