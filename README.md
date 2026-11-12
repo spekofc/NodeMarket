@@ -47,6 +47,9 @@ python run.py
 
 Open `http://127.0.0.1:8000`.
 
+<img width="1873" height="941" alt="{30858F48-15ED-4F28-B260-E70B08B7399F}" src="https://github.com/user-attachments/assets/f4e3da89-cd0c-4f30-bb1e-7283e323a18c" />
+
+
 ### First run as a store owner
 
 1. Sign in at `/admin` with `ADMIN_PASSWORD`.
