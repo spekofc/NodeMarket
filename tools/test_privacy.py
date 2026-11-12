@@ -191,6 +191,12 @@ def buyer_get(path):
     return _resp(buyer, urllib.request.Request(BASE + path))
 
 
+def buyer_post(path, data):
+    """POST with the buyer's cart cookie."""
+    body = urllib.parse.urlencode(data).encode()
+    return _resp(buyer, urllib.request.Request(BASE + path, data=body, method="POST"))
+
+
 save_settings()
 
 # 1. valid checkout with marker plaintext
@@ -235,6 +241,7 @@ check("error page does not echo delivery details", MARKER not in html)
 # 7. fail closed: key that parses but cannot encrypt
 baseline = order_count()
 save_settings(pgp_armor=SIGN_ONLY_ARMOR)
+buyer_post("/cart/add", {"pid": "1", "qty": "1"})
 status, html, _ = buyer_get("/checkout")
 check("sign-only key accepted by validator (captcha shown)", "/captcha.svg?token=" in html)
 status, html, url = place_order(MARKER)
@@ -243,16 +250,18 @@ check("no order row on unencryptable key", order_count() == baseline)
 
 # 8. fail closed: garbage key
 save_settings(pgp_armor="-----BEGIN GARBAGE-----")
+buyer_post("/cart/add", {"pid": "1", "qty": "1"})
 status, html, _ = buyer_get("/checkout")
-check("garbage key -> warning on checkout page", "cannot be placed yet" in html)
+check("garbage key -> warning on checkout page", "Store PGP key is missing or invalid" in html)
 status, html, url = place_order(MARKER)
 check("garbage key -> 400", status == 400)
 check("no order row on garbage key", order_count() == baseline)
 
 # 9. fail closed: missing key
 save_settings(pgp_armor="")
+buyer_post("/cart/add", {"pid": "1", "qty": "1"})
 status, html, _ = buyer_get("/checkout")
-check("missing key -> warning on checkout page", "cannot be placed yet" in html)
+check("missing key -> warning on checkout page", "Store PGP key is missing or invalid" in html)
 status, html, url = place_order(MARKER)
 check("missing key -> 400", status == 400)
 check("no order row on missing key", order_count() == baseline)

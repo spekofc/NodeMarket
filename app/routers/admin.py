@@ -120,13 +120,99 @@ def order_set_status(request: Request, order_ref: str, status: str = Form(...)):
 
 # --- products -------------------------------------------------------------------
 
+def _slugify(name: str) -> str:
+    """URL-safe slug: lowercase, alnum runs joined by single dashes."""
+    import re as _re
+    slug = _re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "category"
+
+
+@router.get("/categories", response_class=HTMLResponse)
+def categories_view(request: Request):
+    guard = _guard(request)
+    if guard:
+        return guard
+    categories = query(
+        """SELECT c.*, (SELECT COUNT(*) FROM products p
+                        WHERE p.category_id = c.id) AS product_count
+           FROM categories c ORDER BY name COLLATE NOCASE""")
+    return templates.TemplateResponse(request, "admin/categories.html",
+                                      {"categories": categories})
+
+
+@router.post("/categories/new")
+def category_create(request: Request, name: str = Form("")):
+    guard = _guard(request)
+    if guard:
+        return guard
+    name = name.strip()[:60]
+    if name:
+        slug = _slugify(name)
+        existing = query("SELECT slug FROM categories WHERE slug = ?", (slug,))
+        if existing:
+            n = 2
+            while query("SELECT slug FROM categories WHERE slug = ?", (f"{slug}-{n}",)):
+                n += 1
+            slug = f"{slug}-{n}"
+        execute("INSERT INTO categories (name, slug) VALUES (?, ?)", (name, slug))
+    return RedirectResponse("/admin/categories", status_code=303)
+
+
+@router.get("/categories/{cid}/edit", response_class=HTMLResponse)
+def category_edit(request: Request, cid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    rows = query("SELECT * FROM categories WHERE id = ?", (cid,))
+    if not rows:
+        return RedirectResponse("/admin/categories", status_code=303)
+    return templates.TemplateResponse(request, "admin/category_form.html",
+                                      {"category": rows[0]})
+
+
+@router.post("/categories/{cid}/edit")
+def category_update(request: Request, cid: int, name: str = Form("")):
+    guard = _guard(request)
+    if guard:
+        return guard
+    name = name.strip()[:60]
+    if name:
+        slug = _slugify(name)
+        clash = query("SELECT id FROM categories WHERE slug = ? AND id != ?", (slug, cid))
+        if clash:
+            n = 2
+            while query("SELECT slug FROM categories WHERE slug = ? AND id != ?",
+                        (f"{slug}-{n}", cid)):
+                n += 1
+            slug = f"{slug}-{n}"
+        execute("UPDATE categories SET name = ?, slug = ? WHERE id = ?", (name, slug, cid))
+    return RedirectResponse("/admin/categories", status_code=303)
+
+
+@router.post("/categories/{cid}/delete")
+def category_delete(request: Request, cid: int):
+    guard = _guard(request)
+    if guard:
+        return guard
+    execute("UPDATE products SET category_id = NULL WHERE category_id = ?", (cid,))
+    execute("DELETE FROM categories WHERE id = ?", (cid,))
+    return RedirectResponse("/admin/categories", status_code=303)
+
+
 @router.get("/products", response_class=HTMLResponse)
 def products_view(request: Request):
     guard = _guard(request)
     if guard:
         return guard
-    products = query("SELECT * FROM products ORDER BY id DESC")
+    products = query(
+        """SELECT p.*, c.name AS category_name
+           FROM products p LEFT JOIN categories c ON c.id = p.category_id
+           ORDER BY p.id DESC""")
     return templates.TemplateResponse(request, "admin/products.html", {"products": products})
+
+
+def _product_categories():
+    return query("SELECT * FROM categories ORDER BY name COLLATE NOCASE")
 
 
 @router.get("/products/new", response_class=HTMLResponse)
@@ -134,12 +220,21 @@ def product_new(request: Request):
     guard = _guard(request)
     if guard:
         return guard
-    return templates.TemplateResponse(request, "admin/product_form.html", {"product": None})
+    return templates.TemplateResponse(request, "admin/product_form.html",
+                                      {"product": None, "categories": _product_categories()})
+
+
+def _clean_category(value: str) -> int | None:
+    try:
+        cid = int(value)
+    except (TypeError, ValueError):
+        return None
+    return cid if query("SELECT id FROM categories WHERE id = ?", (cid,)) else None
 
 
 @router.post("/products/new")
 def product_create(request: Request, name: str = Form(""), description: str = Form(""),
-                   price: str = Form("0")):
+                   price: str = Form("0"), category_id: str = Form("")):
     guard = _guard(request)
     if guard:
         return guard
@@ -149,8 +244,8 @@ def product_create(request: Request, name: str = Form(""), description: str = Fo
         price_cents = 0
     if name.strip():
         execute(
-            "INSERT INTO products (name, description, price_cents) VALUES (?, ?, ?)",
-            (name.strip(), description.strip(), max(0, price_cents)),
+            "INSERT INTO products (name, description, price_cents, category_id) VALUES (?, ?, ?, ?)",
+            (name.strip(), description.strip(), max(0, price_cents), _clean_category(category_id)),
         )
     return RedirectResponse("/admin/products", status_code=303)
 
@@ -165,13 +260,14 @@ def product_edit(request: Request, pid: int):
         return RedirectResponse("/admin/products", status_code=303)
     product = dict(rows[0])
     product["price_display"] = f"{product['price_cents'] / 100:.2f}"
-    return templates.TemplateResponse(request, "admin/product_form.html", {"product": product})
+    return templates.TemplateResponse(request, "admin/product_form.html",
+                                      {"product": product, "categories": _product_categories()})
 
 
 @router.post("/products/{pid}/edit")
 def product_update(request: Request, pid: int, name: str = Form(""),
                    description: str = Form(""), price: str = Form("0"),
-                   active: str = Form("")):
+                   active: str = Form(""), category_id: str = Form("")):
     guard = _guard(request)
     if guard:
         return guard
@@ -180,9 +276,10 @@ def product_update(request: Request, pid: int, name: str = Form(""),
     except ValueError:
         price_cents = 0
     execute(
-        """UPDATE products SET name = ?, description = ?, price_cents = ?, active = ?
-           WHERE id = ?""",
-        (name.strip(), description.strip(), max(0, price_cents), 1 if active else 0, pid),
+        """UPDATE products SET name = ?, description = ?, price_cents = ?,
+           active = ?, category_id = ? WHERE id = ?""",
+        (name.strip(), description.strip(), max(0, price_cents),
+         1 if active else 0, _clean_category(category_id), pid),
     )
     return RedirectResponse("/admin/products", status_code=303)
 

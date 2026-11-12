@@ -1,0 +1,46 @@
+# NodeMarket — docker compose deployment.
+#   docker compose up -d        -> NodeMarket on http://127.0.0.1:8000
+#   docker compose logs -f      -> follow logs
+#
+# Data persists in the named volume `nodemarket_data`.
+#
+# To serve as a .onion hidden service instead, uncomment the `tor` service,
+# set HOST=0.0.0.0 on nodemarket, and read the onion address with:
+#   docker compose exec tor cat /var/lib/tor/hidden_service/hostname
+#
+# Tor never needs to be exposed to the host network: it connects to
+# NodeMarket over the internal compose network only.
+
+services:
+  nodemarket:
+    build: .
+    image: nodemarket:latest
+    environment:
+      # Keep 127.0.0.1 (default) when publishing the port directly;
+      # set 0.0.0.0 only when fronted by the Tor service below or a TLS proxy.
+      HOST: "127.0.0.1"
+      PORT: "8000"
+      # SECRET_KEY: session/cookie signing — generate once, never rotate lightly:
+      #   docker compose run --rm nodemarket python -c "import secrets; print(secrets.token_hex(32))"
+      # SECRET_KEY: "…"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - nodemarket_data:/app/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # Optional: Tor hidden service (v3). Uncomment to run as .onion.
+  # tor:
+  #   image: dperson/torproxy:latest
+  #   environment:
+  #     # maps the hidden service to nodemarket:8000 over the compose network
+  #     SERVICE: nodemarket,8000
+  #   depends_on:
+  #     - nodemarket
+  #   restart: unless-stopped
+
+volumes:
+  nodemarket_data:

@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block title %}Categories · Admin{% endblock %}
+{% block admin_content %}
+<h2>Categories</h2>
+<p class="muted">Free-form product groupings shown as filter links on the storefront.</p>
+
+<form method="post" action="/admin/categories/new" class="stack-form inline-new">
+  <label for="new-name">New category name</label>
+  <input type="text" id="new-name" name="name" required maxlength="60">
+  <button type="submit">Create</button>
+</form>
+
+{% if categories %}
+<table>
+  <thead><tr><th>Name</th><th>Slug</th><th>Products</th><th></th></tr></thead>
+  <tbody>
+    {% for c in categories %}
+    <tr>
+      <td>{{ c['name'] }}</td>
+      <td class="muted">{{ c['slug'] }}</td>
+      <td>{{ c['product_count'] }}</td>
+      <td class="row-actions">
+        <a href="/admin/categories/{{ c['id'] }}/edit">Edit</a>
+        <form method="post" action="/admin/categories/{{ c['id'] }}/delete" class="inline-form">
+          <button type="submit" class="link-button danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No categories yet. Products work fine without them.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% block title %}Edit category · Admin{% endblock %}
+{% block admin_content %}
+<h2>Edit category</h2>
+<form method="post" action="/admin/categories/{{ category['id'] }}/edit" class="stack-form">
+  <label for="name">Name</label>
+  <input type="text" id="name" name="name" value="{{ category['name'] }}" required maxlength="60">
+  <p class="muted">Slug is derived from the name: {{ category['slug'] }}</p>
+  <button type="submit">Save</button>
+</form>
+<p><a href="/admin/categories">&larr; Back to categories</a></p>
+{% endblock %}

@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .. import captcha
 from ..db import query, execute
-from ..pgp import encrypt_for_store, validate_public_key
+from ..pgp import encrypt_for_store, validate_public_key, validate_pgp_message
 from ..payments import get_provider
 from ..payments import escrow
 from ..security import cart_load, CART_COOKIE
@@ -66,17 +66,22 @@ def _enabled_methods(settings_row) -> list[tuple[str, str, str]]:
     return out
 
 
-def _checkout_context(totals, settings_row, captcha_token="", error=""):
+def _checkout_context(totals, settings_row, captcha_token="", error="", pgp_error="",
+                       pgp_mode="plain", pgp_block=""):
     methods = _enabled_methods(settings_row)
     key_ok, key_msg = validate_public_key(settings_row["pgp_public_key"] or "")
+    # form is always shown if cart is valid; plaintext option gated by key_ok
     ctx = {
         "cart": totals,
         "key_ok": key_ok,
         "key_msg": key_msg,
         "methods": methods,
         "settlement_mode": settings_row["settlement_mode"],
-        "captcha_token": captcha_token if key_ok else "",
+        "captcha_token": captcha_token,
         "captcha_error": error,
+        "pgp_error": pgp_error,
+        "pgp_mode": pgp_mode,
+        "pgp_block": pgp_block,
     }
     return ctx, key_ok
 
@@ -94,6 +99,7 @@ def checkout_view(request: Request):
 @router.post("/checkout")
 def checkout_place(request: Request, delivery_details: str = Form(""),
                    payment_method: str = Form("demo"),
+                   pgp_mode: str = Form("plain"), pgp_block: str = Form(""),
                    captcha_token: str = Form(""), captcha_answer: str = Form("")):
     totals = _cart_totals(request)
     if not totals:
@@ -108,28 +114,43 @@ def checkout_place(request: Request, delivery_details: str = Form(""),
     if not captcha.verify(captcha_token, captcha_answer):
         ctx, _ = _checkout_context(
             totals, settings_row, captcha.new_challenge(),
-            "Wrong or expired captcha answer.")
+            "Wrong or expired captcha answer.",
+            pgp_mode=pgp_mode, pgp_block=pgp_block)
         return templates.TemplateResponse(
             request, "checkout.html", ctx, status_code=400)
 
     armored = settings_row["pgp_public_key"] or ""
-    ok, msg = validate_public_key(armored)
-    if not ok:
-        # Fail closed: never store plaintext buyer data.
-        ctx, _ = _checkout_context(totals, settings_row)
-        return templates.TemplateResponse(
-            request, "checkout.html", ctx, status_code=400)
+    key_ok, key_msg = validate_public_key(armored)
 
     # Minimal buyer context inside the encrypted payload - nothing else is stored.
     buyer_text = delivery_details.strip() or "(no delivery details provided)"
-    try:
-        ciphertext = encrypt_for_store(armored, buyer_text)
-    except Exception:
-        # Fail closed even when the key parses but cannot encrypt
-        # (e.g. no encryption subkey): 400, no row, no plaintext anywhere.
-        ctx, _ = _checkout_context(totals, settings_row)
-        return templates.TemplateResponse(
-            request, "checkout.html", ctx, status_code=400)
+    if pgp_mode == "own":
+        # Bring Your Own PGP: the buyer pre-encrypted their details with
+        # their own key. The server validates the block, stores it verbatim
+        # and cannot read it - no store key needed at all.
+        ok, msg = validate_pgp_message(pgp_block)
+        if not ok:
+            ctx, _ = _checkout_context(totals, settings_row, captcha.new_challenge(),
+                                       pgp_error=msg, pgp_mode=pgp_mode, pgp_block=pgp_block)
+            return templates.TemplateResponse(
+                request, "checkout.html", ctx, status_code=400)
+        ciphertext = pgp_block.strip()
+    else:
+        # Store-key mode, fail closed: never store plaintext buyer data.
+        if not key_ok:
+            ctx, _ = _checkout_context(totals, settings_row, captcha.new_challenge(),
+                                       pgp_mode=pgp_mode, pgp_block=pgp_block)
+            return templates.TemplateResponse(
+                request, "checkout.html", ctx, status_code=400)
+        try:
+            ciphertext = encrypt_for_store(armored, buyer_text)
+        except Exception:
+            # Fail closed even when the key parses but cannot encrypt
+            # (e.g. no encryption subkey): 400, no row, no plaintext anywhere.
+            ctx, _ = _checkout_context(totals, settings_row, captcha.new_challenge(),
+                                       pgp_mode=pgp_mode, pgp_block=pgp_block)
+            return templates.TemplateResponse(
+                request, "checkout.html", ctx, status_code=400)
 
     provider = get_provider(payment_method) or get_provider("demo")
     provider_settings = dict(settings_row)  # Row -> dict (providers use .get)

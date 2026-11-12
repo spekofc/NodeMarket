@@ -1,5 +1,6 @@
 """NodeMarket configuration. Reads .env (stdlib-only parser) with safe defaults."""
 
+import os
 import secrets
 from pathlib import Path
 
@@ -7,8 +8,12 @@ _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 def load_env() -> dict:
-    """Minimal .env parser: KEY=VALUE lines, '#' comments, quoted values stripped."""
-    env = {}
+    """Minimal .env parser: KEY=VALUE lines, '#' comments, quoted values stripped.
+
+    Process environment variables are read first; the .env file (when present)
+    overrides them. Docker deployments set HOST/PORT/SECRET_KEY via `environment:`.
+    """
+    env = dict(os.environ)
     if _ENV_FILE.is_file():
         for raw in _ENV_FILE.read_text(encoding="utf-8").splitlines():
             line = raw.strip()

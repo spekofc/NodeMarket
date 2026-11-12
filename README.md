@@ -66,13 +66,62 @@ Open `http://127.0.0.1:8000`.
    public key**, enable the payment methods you accept (Bitcoin, Monero,
    Demo) and pick the **settlement mode**. See
    [Payments (v0.3)](#payments-v03) below.
-3. Add products under **Products**.
-4. At checkout, buyer delivery details are PGP-encrypted automatically. View
-   orders in the admin panel as ciphertext and decrypt them locally:
+3. Add products under **Products** and group them with **Categories** —
+   the storefront gets filter links (`/?category=slug`) and a plain-HTML
+   search box (`/?q=`) automatically.
+4. At checkout, buyer delivery details are PGP-encrypted automatically.
+   Privacy purists can instead pre-encrypt their own details with their own
+   key ("Bring your own PGP") — the server stores the block unreadable.
+   View orders in the admin panel as ciphertext and decrypt them locally:
 
 ```bash
 gpg --decrypt buyer-order.txt
 ```
+
+## Docker deploy
+
+The recommended way to run NodeMarket in production. The image is
+`python:3.12-slim`, runs as a non-root user (`nodemarket`), and persists
+everything in a volume at `/app/data`.
+
+```bash
+# build and run on http://127.0.0.1:8000
+docker compose up -d --build
+
+# generate a session secret and set it in docker-compose.yml before exposing anything
+docker compose run --rm nodemarket python -c "import secrets; print(secrets.token_hex(32))"
+
+# set the admin password: add ADMIN_PASSWORD to the environment: block, then
+docker compose up -d
+```
+
+Plain `docker` without compose:
+
+```bash
+docker build -t nodemarket .
+docker run -d -p 127.0.0.1:8000:8000 -v nodemarket_data:/app/data nodemarket
+```
+
+Configuration through environment variables (compose `environment:` block
+or `docker run -e`): `SECRET_KEY`, `ADMIN_PASSWORD`, `STORE_NAME`,
+`CURRENCY`, `DB_PATH` (keep the default `data/nodemarket.db` — the volume
+mounts `/app/data`).
+
+### Running as a Tor hidden service (`.onion`)
+
+Uncomment the commented `tor` service in `docker-compose.yml`, change
+`HOST` to `0.0.0.0` (Tor connects over the internal compose network, never
+the host), and start:
+
+```bash
+docker compose up -d --build
+docker compose exec tor cat /var/lib/tor/hidden_service/hostname   # your .onion URL
+```
+
+NodeMarket's zero-JS frontend works with Tor Browser at its highest
+security level, and the app makes no external calls that would break
+onion-service operation. See
+[Transport security](#transport-security-read-before-deploying).
 
 ## Payments (v0.3)
 

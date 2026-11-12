@@ -267,6 +267,8 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 .pay-methods { margin: 1rem 0; padding: 0.8rem; }
 .pay-option { margin: 0.6rem 0; }
 .pay-option label { display: inline; font-weight: 400; }
+.pgp-mode { margin: 1rem 0; padding: 0.8rem; }
+#pgp_block { margin-top: 0.4rem; font-family: monospace; white-space: pre-wrap; }
 
 .status-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; }
 
@@ -278,3 +280,24 @@ label { display: block; margin: 0.6rem 0 0.25rem; }
 
 .product-detail { max-width: 40rem; }
 .description p { margin-bottom: 0.5rem; }
+
+/* storefront: category menu + search */
+
+.cat-menu { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.6rem 0 1rem; }
+.cat-link {
+  padding: 0.15rem 0.7rem;
+  border: 1px solid var(--border);
+  text-decoration: none;
+}
+.cat-link.active { color: var(--accent); border-color: var(--accent); }
+
+.search-form { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.2rem; }
+.search-form input[type="text"] { flex: 1; max-width: 22rem; }
+
+.cat-badge { font-size: 0.85rem; color: var(--muted); margin: 0.3rem 0; }
+
+/* admin: categories table */
+
+.inline-new { display: flex; gap: 0.6rem; align-items: center; max-width: 30rem; }
+.inline-new input[type="text"] { flex: 1; }
+.row-actions { display: flex; gap: 0.8rem; align-items: center; white-space: nowrap; }

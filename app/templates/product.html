@@ -4,6 +4,11 @@
 <article class="product-detail">
   <p><a href="/">&larr; Back to catalog</a></p>
   <h1>{{ product['name'] }}</h1>
+  {% if category %}
+  <p class="cat-badge">Category:
+    <a href="/?category={{ category['slug'] }}">{{ category['name'] }}</a>
+  </p>
+  {% endif %}
   <p class="price">{{ product['price_cents'] | money }} {{ product['currency'] }}</p>
   {% if product['description'] %}
   <div class="description">

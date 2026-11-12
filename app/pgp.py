@@ -36,3 +36,25 @@ def encrypt_for_store(armored_key: str, plaintext: str) -> str:
     message = PGPMessage.new(plaintext)
     ciphertext = key.encrypt(message)
     return str(ciphertext)
+
+
+def validate_pgp_message(text: str) -> tuple[bool, str]:
+    """Validate a buyer-supplied ASCII-armored PGP message (BYO PGP).
+
+    The block must parse as an OpenPGP message AND actually be encrypted
+    (an encrypted delivery address is the whole point of bring-your-own).
+    Returns (ok, message). The text is never modified or decrypted here:
+    the server cannot read it and does not need to.
+    """
+    stripped = text.strip()
+    if "-----BEGIN PGP MESSAGE-----" not in stripped:
+        return False, "Not an ASCII-armored PGP message block."
+    try:
+        message = PGPMessage()
+        message.parse(stripped)
+    except (PGPError, ValueError) as exc:
+        return False, f"Failed to parse PGP message: {exc}"
+    if not message.is_encrypted:
+        return False, ("The message parses but is not encrypted. "
+                       "Encrypt it to your own key before submitting.")
+    return True, "Valid encrypted PGP message."

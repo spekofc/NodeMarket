@@ -16,6 +16,15 @@
   <input type="text" id="price" name="price" inputmode="decimal"
          value="{{ product['price_display'] if product else '0.00' }}">
 
+  <label for="category_id">Category <span class="muted">(optional)</span></label>
+  <select id="category_id" name="category_id">
+    <option value="">— none —</option>
+    {% for c in categories %}
+    <option value="{{ c['id'] }}"
+            {{ 'selected' if product and product['category_id'] == c['id'] }}>{{ c['name'] }}</option>
+    {% endfor %}
+  </select>
+
   {% if product %}
   <label class="checkbox-label">
     <input type="checkbox" name="active" value="1" {{ 'checked' if product['active'] }}>

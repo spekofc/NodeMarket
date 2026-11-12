@@ -18,7 +18,14 @@ CREATE TABLE IF NOT EXISTS products (
     price_cents   INTEGER NOT NULL,
     currency      TEXT    NOT NULL DEFAULT 'USD',
     active        INTEGER NOT NULL DEFAULT 1,
+    category_id   INTEGER,
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS store_settings (
@@ -101,6 +108,9 @@ _MIGRATIONS = {
     },
     "orders": {
         "settlement_mode": "TEXT NOT NULL DEFAULT 'direct'",
+    },
+    "products": {
+        "category_id": "INTEGER",
     },
 }
 
