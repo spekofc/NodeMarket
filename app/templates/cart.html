@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Cart · {{ store_name }}{% endblock %}
+{% block content %}
+<h1>Your cart</h1>
+
+{% if cart and cart['items'] %}
+<table class="cart-table">
+  <thead>
+    <tr><th>Product</th><th>Unit</th><th>Qty</th><th>Line total</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for item in cart['items'] %}
+    <tr>
+      <td><a href="/product/{{ item['id'] }}">{{ item['name'] }}</a></td>
+      <td>{{ item['price_cents'] | money }} {{ item['currency'] }}</td>
+      <td>
+        <form method="post" action="/cart/update" class="qty-form">
+          <input type="hidden" name="pid" value="{{ item['id'] }}">
+          <input type="number" name="qty" min="0" max="99" value="{{ item['qty'] }}">
+          <button type="submit">Update</button>
+        </form>
+      </td>
+      <td>{{ item['line_total_cents'] | money }} {{ item['currency'] }}</td>
+      <td>
+        <form method="post" action="/cart/remove">
+          <input type="hidden" name="pid" value="{{ item['id'] }}">
+          <button type="submit" class="danger">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p class="total">Total: {{ cart['total_cents'] | money }} {{ cart['currency'] }}</p>
+
+<p class="actions">
+  <a class="button" href="/checkout">Proceed to checkout</a>
+  <form method="post" action="/cart/clear" class="inline-form">
+    <button type="submit" class="danger">Empty cart</button>
+  </form>
+</p>
+{% else %}
+<p class="empty">Your cart is empty. <a href="/">Browse the catalog</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Admin · {{ store_name }}{% endblock %}
+{% block content %}
+<div class="admin-header">
+  <h1>Admin</h1>
+  <nav class="admin-nav">
+    <a href="/admin">Orders</a>
+    <a href="/admin/products">Products</a>
+    <a href="/admin/settings">Settings</a>
+    <form method="post" action="/admin/logout" class="inline-form">
+      <button type="submit" class="link-button">Log out</button>
+    </form>
+  </nav>
+</div>
+{% block admin_content %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order['order_ref'] }} · {{ store_name }}{% endblock %}
+{% block content %}
+<h1>Order received</h1>
+
+<p class="order-ref">Reference: <strong>{{ order['order_ref'] }}</strong></p>
+<p>Status: <strong>{{ order['status'] }}</strong></p>
+<p class="total">Total: {{ order['total_cents'] | money }} {{ order['currency'] }}</p>
+
+<h2>Payment</h2>
+<p>{{ order['payment_label'] }}</p>
+<pre class="payment-details">{% for line in order['payment_details_lines'] %}{{ line }}
+{% endfor %}</pre>
+
+<p class="muted">
+  Your delivery details were PGP-encrypted with the store's public key before
+  being stored. Not even this server can read them.
+</p>
+<p><a href="/">Back to catalog</a></p>
+{% endblock %}

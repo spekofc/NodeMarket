@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if product else 'New' }} product · Admin{% endblock %}
+{% block admin_content %}
+<h2>{{ 'Edit product' if product else 'New product' }}</h2>
+
+<form method="post"
+      action="{{ '/admin/products/%d/edit' | format(product['id']) if product else '/admin/products/new' }}"
+      class="stack-form">
+  <label for="name">Name</label>
+  <input type="text" id="name" name="name" value="{{ product['name'] if product else '' }}" required maxlength="120">
+
+  <label for="description">Description</label>
+  <textarea id="description" name="description" rows="5">{{ product['description'] if product else '' }}</textarea>
+
+  <label for="price">Price ({{ 'store currency' }})</label>
+  <input type="text" id="price" name="price" inputmode="decimal"
+         value="{{ product['price_display'] if product else '0.00' }}">
+
+  {% if product %}
+  <label class="checkbox-label">
+    <input type="checkbox" name="active" value="1" {{ 'checked' if product['active'] }}>
+    Active (visible in catalog)
+  </label>
+  {% endif %}
+
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

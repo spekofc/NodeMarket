@@ -1,0 +1,32 @@
+{% extends "admin/base.html" %}
+{% block title %}Products · Admin · {{ store_name }}{% endblock %}
+{% block admin_content %}
+<h2>Products</h2>
+<p><a class="button" href="/admin/products/new">Add product</a></p>
+
+{% if products %}
+<table class="admin-table">
+  <thead>
+    <tr><th>Name</th><th>Price</th><th>Active</th><th></th><th></th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for p in products %}
+    <tr>
+      <td>{{ p['name'] }}</td>
+      <td>{{ p['price_cents'] | money }} {{ p['currency'] }}</td>
+      <td>{{ 'yes' if p['active'] else 'no' }}</td>
+      <td><a href="/admin/products/{{ p['id'] }}/edit">Edit</a></td>
+      <td><a href="/product/{{ p['id'] }}">View</a></td>
+      <td>
+        <form method="post" action="/admin/products/{{ p['id'] }}/delete">
+          <button type="submit" class="danger small">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No products yet.</p>
+{% endif %}
+{% endblock %}

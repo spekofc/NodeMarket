@@ -1,0 +1,27 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings · Admin · {{ store_name }}{% endblock %}
+{% block admin_content %}
+<h2>Store settings</h2>
+
+<p class="key-status {{ 'ok' if key_ok else 'bad' }}">{{ key_msg }}</p>
+
+<form method="post" action="/admin/settings" class="stack-form">
+  <label for="store_name">Store name</label>
+  <input type="text" id="store_name" name="store_name" value="{{ settings['store_name'] }}" maxlength="80">
+
+  <label for="payment_provider">Payment provider</label>
+  <select id="payment_provider" name="payment_provider">
+    {% for provider in providers %}
+    <option value="{{ provider }}" {{ 'selected' if provider == settings['payment_provider'] }}>{{ provider }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="xpub">Xpub <span class="muted">(account-level extended public key for the xpub provider)</span></label>
+  <textarea id="xpub" name="xpub" rows="3" spellcheck="false">{{ settings['xpub'] or '' }}</textarea>
+
+  <label for="pgp_public_key">PGP public key <span class="muted">(ASCII-armored — buyer data is encrypted with it)</span></label>
+  <textarea id="pgp_public_key" name="pgp_public_key" rows="10" spellcheck="false">{{ settings['pgp_public_key'] or '' }}</textarea>
+
+  <button type="submit">Save settings</button>
+</form>
+{% endblock %}

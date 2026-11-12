@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Checkout · {{ store_name }}{% endblock %}
+{% block content %}
+<h1>Checkout</h1>
+
+{% if cart and cart['items'] %}
+<table class="cart-table">
+  <thead><tr><th>Product</th><th>Qty</th><th>Line total</th></tr></thead>
+  <tbody>
+    {% for item in cart['items'] %}
+    <tr>
+      <td>{{ item[1] }}</td>
+      <td>{{ item[2] }}</td>
+      <td>{{ (item[3] * item[2]) | money }} {{ cart['currency'] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p class="total">Total: {{ cart['total_cents'] | money }} {{ cart['currency'] }}</p>
+
+{% if key_ok %}
+<form method="post" action="/checkout" class="checkout-form">
+  <label for="delivery_details">
+    Delivery address &amp; notes
+    <span class="muted">(will be PGP-encrypted before storage — only you can read it)</span>
+  </label>
+  <textarea id="delivery_details" name="delivery_details" rows="6"
+            placeholder="Street, number, city, postal code… and anything the store should know."></textarea>
+  <button type="submit">Place order</button>
+</form>
+{% else %}
+<p class="warning">
+  This order cannot be placed yet: the store's PGP key is missing or invalid.
+  <br>{{ key_msg }}
+</p>
+{% endif %}
+
+{% else %}
+<p class="empty">Your cart is empty. <a href="/">Browse the catalog</a>.</p>
+{% endif %}
+{% endblock %}

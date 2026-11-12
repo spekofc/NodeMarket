@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Catalog · {{ store_name }}{% endblock %}
+{% block content %}
+<h1>Catalog</h1>
+{% if products %}
+<div class="grid">
+  {% for p in products %}
+  <article class="card">
+    <h2><a href="/product/{{ p['id'] }}">{{ p['name'] }}</a></h2>
+    <p class="price">{{ p['price_cents'] | money }} {{ p['currency'] }}</p>
+    <p class="muted">{{ p['description'][:96] }}{% if p['description']|length > 96 %}…{% endif %}</p>
+    <form method="post" action="/cart/add">
+      <input type="hidden" name="pid" value="{{ p['id'] }}">
+      <input type="hidden" name="qty" value="1">
+      <button type="submit">Add to cart</button>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No products yet. Store owners: sign in to the admin panel to add products.</p>
+{% endif %}
+{% endblock %}
