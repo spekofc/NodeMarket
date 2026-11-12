@@ -1,6 +1,3 @@
-<img width="738" height="743" alt="{A7551770-6967-49BA-BDA9-DA9A92BAFD79}" src="https://github.com/user-attachments/assets/202ba930-eacb-43d1-9f1b-e7f68c740d74" />
-
-
 # NodeMarket
 
 A privacy-first, dependency-light e-commerce engine for independent stores.
