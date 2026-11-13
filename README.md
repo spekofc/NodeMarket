@@ -12,6 +12,16 @@ modes, including Tor Browser at its highest security level.
 
 ## Screenshots
 
+**Storefront** — catalog, categories and search, all plain HTML:
+
+<img src="docs/storefront-preview.png" alt="NodeMarket storefront: catalog with product cards, category filters and search" width="900">
+
+**Visual Customizer** — the v0.7 admin panel, five tabs, zero JavaScript:
+
+<img src="docs/customizer-preview.png" alt="NodeMarket Visual Customizer: identity, theme palette, layout, navigation and custom pages tabs" width="900">
+
+Older captures from a populated test store:
+
 <img width="1875" height="947" alt="{D8E89270-A637-4F8B-8D51-160FC8B85DA1}" src="https://github.com/user-attachments/assets/68d77b67-2098-4c30-a3c0-6c708fed6920" />
 
 <img width="1877" height="943" alt="{70584371-D688-4722-8036-C507ECC5E9D3}" src="https://github.com/user-attachments/assets/53ad0e1d-bd01-445c-8e7f-73789c26c0d3" />
@@ -155,6 +165,45 @@ carries a working CAPTCHA.
 
 All five customizer forms are CAPTCHA-protected (the same in-memory SVG
 challenge used at checkout) and rate-limited at 30 requests/min.
+
+### How the tabs map to the storefront
+
+| Tab | Stored in | Rendered as |
+|---|---|---|
+| Identity & Images | `store_settings` (`store_name`, `logo_path`, `banner_*`) | header logo, `<section class="hero-banner">` above the catalog, footer |
+| Palette & Typography | `store_settings` (`bg_color`, `card_bg_color`, `primary_color`, `text_color`, `border_radius`, `font_family`, `theme_preset`) | `:root { --bg-color: …; --primary: … }` inline CSS block in `base.html` |
+| Layout & Grid | `store_settings` (`category_position`, `grid_columns`, `grid_style`) | category bar/sidebar placement, `.product-grid` column count, grid vs list cards |
+| Menu & Navigation | `store_settings.nav_items` (JSON) | `nav_items` loop in `base.html`; `custom` and `external` flags preserved |
+| Custom Pages | `custom_pages` table | `/page/<slug>` via `public_pages.py`, rendered with `page_custom.html` |
+
+**Sidebar vs top bar:** with `category_position` set to `left` or `right`
+the category list moves into a fixed column beside the product grid;
+`top` keeps the horizontal bar; `hidden` removes it from the storefront
+entirely (the `/?category=` URLs keep working). Grid columns accept 2, 3 or
+4, and `grid_style` switches between card grid and list view — all with CSS
+only, no layout script.
+
+**Zero-JS guarantee:** the customizer's own tab bar is a list of anchor
+links (`#tab-theme`, `#tab-layout`, …), not a scripted tab widget, and all
+panels are rendered visible. There is no `<script>`, no `on*=` handler and
+no inline event anywhere in the admin templates. The CSP for the whole app
+stays `script-src 'none'`, so a browser that blocks scripts entirely — Tor
+Browser at "Safest" — can still configure and run the store.
+
+### Custom page routes
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/admin/customize` | GET | All five tabs on one page |
+| `/admin/customize/theme` | POST | Apply preset or custom colors |
+| `/admin/customize/layout` | POST | Category placement, columns, grid style |
+| `/admin/customize/identity` | POST | Store name, banner text/URL, logo and banner upload |
+| `/admin/customize/navigation` | POST | Save the JSON navigation list |
+| `/admin/customize/pages/new` | GET/POST | Create a page |
+| `/admin/customize/pages/<id>/edit` | GET/POST | Edit a page (delete form lives here too) |
+| `/admin/customize/pages/<id>/delete` | POST | Delete a page |
+| `/page/<slug>` | GET | Public render of a published page |
+
 
 ## Launcher scripts
 
