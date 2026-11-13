@@ -49,7 +49,38 @@ Older captures from a populated test store:
 
 ## Install & run
 
-### Quick start (one-click)
+### Download and run (no git, no terminal)
+
+Every release ships ready-to-run assets on the
+[Releases page](https://github.com/spekofc/NodeMarket/releases):
+
+| Asset | Platform | What to do |
+|---|---|---|
+| `NodeMarket-Windows.exe` | Windows 10/11 | Put it inside the extracted project folder and double-click it |
+| `run.bat` | Windows 10/11 | Double-click inside the project folder |
+| `run.sh` | Linux / macOS | `chmod +x run.sh && ./run.sh` |
+| `NodeMarket-v0.7.0-portable.zip` | any | Full project, nothing else needed — extract it first |
+
+The `.exe` and both scripts do the same four things on their own:
+
+1. Check that **Python 3.11+** is installed, with a friendly message and the
+   official download link if it is not.
+2. Create `.venv` and install `requirements.txt` on first run (later runs
+   reuse it and only fill in missing packages).
+3. Create `.env` from `.env.example` with a **randomly generated
+   `SECRET_KEY`** if it does not exist yet.
+4. Start the server on `http://127.0.0.1:8000` and open the storefront in
+   your default browser.
+
+> Python is still required — the launcher bootstraps the environment, it does
+> not bundle the interpreter. Install it from
+> [python.org](https://www.python.org/downloads/) and enable
+> *Add python.exe to PATH* on Windows.
+
+The admin password defaults to `changeme-admin`. Change `ADMIN_PASSWORD` in
+`.env` before exposing the store, and sign in at `/admin`.
+
+### Quick start (one-click, from a clone)
 
 **Windows:** double-click `run.bat`
 
@@ -57,8 +88,8 @@ Older captures from a populated test store:
 
 Both scripts automatically:
 - Create `.venv` and install dependencies on first run
-- Copy `.env.example` → `.env` if missing (edit `SECRET_KEY` and `ADMIN_PASSWORD`)
-- Start the server at `http://127.0.0.1:8000`
+- Copy `.env.example` → `.env` if missing, generating a random `SECRET_KEY`
+- Start the server at `http://127.0.0.1:8000` and open it in your browser
 
 ### Manual setup
 
