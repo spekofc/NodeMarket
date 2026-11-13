@@ -46,7 +46,32 @@ CREATE TABLE IF NOT EXISTS store_settings (
     payout_btc_address TEXT    NOT NULL DEFAULT '',     -- escrow auto-release destination
     payout_xmr_address TEXT    NOT NULL DEFAULT '',
     settlement_mode    TEXT    NOT NULL DEFAULT 'direct', -- 'direct' | 'escrow'
-    listing_policy     TEXT    NOT NULL DEFAULT 'moderated' -- 'disabled' | 'moderated' | 'open'
+    listing_policy     TEXT    NOT NULL DEFAULT 'moderated', -- 'disabled' | 'moderated' | 'open'
+    -- v0.7 visual customizer settings
+    logo_path            TEXT    NOT NULL DEFAULT '',     -- path to uploaded logo
+    banner_path          TEXT    NOT NULL DEFAULT '',     -- path to uploaded hero banner
+    banner_title         TEXT    NOT NULL DEFAULT '',     -- banner title text
+    banner_subtitle      TEXT    NOT NULL DEFAULT '',     -- banner subtitle text
+    banner_button_text   TEXT    NOT NULL DEFAULT '',     -- banner CTA button text
+    banner_button_url    TEXT    NOT NULL DEFAULT '',     -- banner CTA button URL
+    category_position    TEXT    NOT NULL DEFAULT 'top',  -- 'top' | 'left' | 'right' | 'hidden'
+    grid_columns         INTEGER NOT NULL DEFAULT 3,      -- 2, 3, or 4
+    grid_style           TEXT    NOT NULL DEFAULT 'grid', -- 'grid' | 'list'
+    show_category_badge  INTEGER NOT NULL DEFAULT 1,      -- show category badge on cards
+    show_description     INTEGER NOT NULL DEFAULT 1,      -- show description excerpt on cards
+    show_add_to_cart     INTEGER NOT NULL DEFAULT 1,      -- show add-to-cart button on cards
+    theme_preset         TEXT    NOT NULL DEFAULT 'dark', -- 'dark' | 'green' | 'light' | 'blue' | 'custom'
+    bg_color             TEXT    NOT NULL DEFAULT '#0d0d0d',
+    card_bg_color        TEXT    NOT NULL DEFAULT '#161616',
+    primary_color        TEXT    NOT NULL DEFAULT '#e8b450',
+    text_color           TEXT    NOT NULL DEFAULT '#e8e8e8',
+    border_radius        INTEGER NOT NULL DEFAULT 8,      -- 0, 4, 8, 12
+    font_family          TEXT    NOT NULL DEFAULT 'system', -- 'system' | 'monospace' | 'serif'
+    footer_text          TEXT    NOT NULL DEFAULT 'Powered by NodeMarket',
+    -- Navigation builder (JSON stored as TEXT)
+    nav_items            TEXT    NOT NULL DEFAULT '',     -- JSON array of custom nav items
+    -- Custom pages (JSON stored as TEXT)
+    custom_pages         TEXT    NOT NULL DEFAULT ''      -- JSON array of custom pages
 );
 
 INSERT OR IGNORE INTO store_settings (id) VALUES (1);
@@ -121,6 +146,16 @@ CREATE TABLE IF NOT EXISTS seller_orders (
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     UNIQUE(seller_listing_id, order_id)
 );
+
+CREATE TABLE IF NOT EXISTS custom_pages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT    NOT NULL UNIQUE,
+    title       TEXT    NOT NULL,
+    content     TEXT    NOT NULL DEFAULT '',
+    is_published INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
@@ -146,6 +181,28 @@ _MIGRATIONS = {
         "payout_xmr_address": "TEXT    NOT NULL DEFAULT ''",
         "settlement_mode":    "TEXT    NOT NULL DEFAULT 'direct'",
         "listing_policy":     "TEXT    NOT NULL DEFAULT 'moderated'",
+        "logo_path":          "TEXT    NOT NULL DEFAULT ''",
+        "banner_path":        "TEXT    NOT NULL DEFAULT ''",
+        "banner_title":       "TEXT    NOT NULL DEFAULT ''",
+        "banner_subtitle":    "TEXT    NOT NULL DEFAULT ''",
+        "banner_button_text": "TEXT    NOT NULL DEFAULT ''",
+        "banner_button_url":  "TEXT    NOT NULL DEFAULT ''",
+        "category_position":  "TEXT    NOT NULL DEFAULT 'top'",
+        "grid_columns":       "INTEGER NOT NULL DEFAULT 3",
+        "grid_style":         "TEXT    NOT NULL DEFAULT 'grid'",
+        "show_category_badge": "INTEGER NOT NULL DEFAULT 1",
+        "show_description":   "INTEGER NOT NULL DEFAULT 1",
+        "show_add_to_cart":   "INTEGER NOT NULL DEFAULT 1",
+        "theme_preset":       "TEXT    NOT NULL DEFAULT 'dark'",
+        "bg_color":           "TEXT    NOT NULL DEFAULT '#0d0d0d'",
+        "card_bg_color":      "TEXT    NOT NULL DEFAULT '#161616'",
+        "primary_color":      "TEXT    NOT NULL DEFAULT '#e8b450'",
+        "text_color":         "TEXT    NOT NULL DEFAULT '#e8e8e8'",
+        "border_radius":      "INTEGER NOT NULL DEFAULT 8",
+        "font_family":        "TEXT    NOT NULL DEFAULT 'system'",
+        "footer_text":        "TEXT    NOT NULL DEFAULT 'Powered by NodeMarket'",
+        "nav_items":          "TEXT    NOT NULL DEFAULT ''",
+        "custom_pages":       "TEXT    NOT NULL DEFAULT ''",
     },
     "orders": {
         "settlement_mode": "TEXT NOT NULL DEFAULT 'direct'",

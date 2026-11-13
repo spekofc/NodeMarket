@@ -1,0 +1,270 @@
+{% extends "admin/base.html" %}
+{% block title %}Visual Customizer · Admin{% endblock %}
+{% block admin_content %}
+{% macro captcha_widget() %}
+          <div class="captcha-block">
+            <label>Verificação <span class="muted">(resolva a conta)</span></label>
+            <img src="/captcha.svg?token={{ captcha_token }}" alt="captcha challenge"
+                 width="170" height="56" class="captcha-img">
+            <input type="text" name="captcha_answer" autocomplete="off" required
+                   maxlength="8" inputmode="numeric" class="captcha-input" placeholder="Resposta">
+          </div>
+{% endmacro %}
+<div class="customize-container">
+  <h1>Visual Customizer</h1>
+  <p class="muted">Personalize toda a aparência da sua loja sem tocar em código. 100% Zero-JS, CSS puro.</p>
+
+  {% if request.query_params.get('saved') %}<p class="ok-note">Alterações salvas!</p>{% endif %}
+  {% if request.query_params.get('error') == 'captcha' %}<p class="warning">Captcha inválido ou expirado.</p>{% endif %}
+  {% if request.query_params.get('error') == 'invalid_json' %}<p class="warning">JSON inválido. Verifique o formato.</p>{% endif %}
+
+  <div class="tabs-container">
+    <nav class="tab-nav" role="navigation">
+      <a class="tab-btn" href="#tab-identity">Identidade & Imagens</a>
+      <a class="tab-btn" href="#tab-theme">Paleta & Tipografia</a>
+      <a class="tab-btn" href="#tab-layout">Layout & Grade</a>
+      <a class="tab-btn" href="#tab-navigation">Menu & Navegação</a>
+      <a class="tab-btn" href="#tab-pages">Páginas Customizadas</a>
+    </nav>
+
+    <div class="tab-panels">
+      <!-- ===== IDENTITY ===== -->
+      <section class="tab-panel active" id="tab-identity" role="tabpanel">
+        <h2>Identidade & Imagens</h2>
+        <form method="post" action="/admin/customize/identity" class="stack-form" enctype="multipart/form-data">
+          <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+          {{ captcha_widget() }}
+
+          <h3>Nome & Texto</h3>
+          <label for="store_name">Nome da Loja</label>
+          <input type="text" id="store_name" name="store_name" value="{{ settings.store_name }}" maxlength="80" required>
+
+          <label for="slogan">Slogan / Subtítulo (opcional)</label>
+          <input type="text" id="slogan" name="slogan" value="{{ settings.slogan or '' }}" maxlength="160" placeholder="Ex: Privacidade em cada transação">
+
+          <label for="footer_text">Texto do Rodapé</label>
+          <input type="text" id="footer_text" name="footer_text" value="{{ settings.footer_text }}" maxlength="200">
+
+          <h3>Logo da Loja</h3>
+          {% if settings.logo_path %}
+          <p class="current-file">Atual: <a href="/static/{{ settings.logo_path }}" target="_blank">{{ settings.logo_path }}</a> <small>(clique para ver)</small></p>
+          {% endif %}
+          <label for="logo_file">Novo Logo (PNG/JPG/WebP, máx. 5MB)</label>
+          <input type="file" id="logo_file" name="logo_file" accept=".png,.jpg,.jpeg,.webp">
+
+          <h3>Banner Principal (Hero)</h3>
+          {% if settings.banner_path %}
+          <p class="current-file">Atual: <a href="/static/{{ settings.banner_path }}" target="_blank">{{ settings.banner_path }}</a></p>
+          {% endif %}
+          <label for="banner_file">Nova Imagem de Banner (PNG/JPG/WebP, máx. 5MB)</label>
+          <input type="file" id="banner_file" name="banner_file" accept=".png,.jpg,.jpeg,.webp">
+
+          <label for="banner_title">Título do Banner</label>
+          <input type="text" id="banner_title" name="banner_title" value="{{ settings.banner_title }}" maxlength="80" placeholder="Ex: Bem-vindo ao NodeMarket">
+
+          <label for="banner_subtitle">Subtítulo do Banner</label>
+          <input type="text" id="banner_subtitle" name="banner_subtitle" value="{{ settings.banner_subtitle }}" maxlength="160" placeholder="Privacidade em cada transação. Zero-JS, Zero tracking.">
+
+          <label for="banner_button_text">Texto do Botão (CTA)</label>
+          <input type="text" id="banner_button_text" name="banner_button_text" value="{{ settings.banner_button_text }}" maxlength="30" placeholder="Ex: Começar a Comprar">
+
+          <label for="banner_button_url">URL do Botão</label>
+          <input type="text" id="banner_button_url" name="banner_button_url" value="{{ settings.banner_button_url }}" placeholder="/ ou /page/guia-pgp">
+
+          <button type="submit">Salvar Identidade</button>
+        </form>
+      </section>
+
+      <!-- ===== THEME ===== -->
+      <section class="tab-panel" id="tab-theme" role="tabpanel">
+        <h2>Paleta de Cores & Tipografia</h2>
+        <form method="post" action="/admin/customize/theme" class="stack-form">
+          <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+          {{ captcha_widget() }}
+
+          <h3>Presets de Tema (1 clique)</h3>
+          <div class="preset-grid">
+            {% for key, preset in theme_presets.items() %}
+            <label class="preset-card {% if settings.theme_preset == key %}active{% endif %}">
+              <input type="radio" name="theme_preset" value="{{ key }}" {% if settings.theme_preset == key %}checked{% endif %}>
+              <span class="preset-preview" style="background: {{ preset.bg_color }}; border-color: {{ preset.primary_color }};">
+                <span class="preset-sample" style="color: {{ preset.primary_color }};">{{ preset.name }}</span>
+              </span>
+              <span class="preset-name">{{ preset.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+
+          <h3>Personalização Avançada (sobrescreve preset)</h3>
+          <div class="form-row">
+            <div>
+              <label for="bg_color">Cor de Fundo</label>
+              <input type="color" id="bg_color" name="bg_color" value="{{ settings.bg_color }}">
+            </div>
+            <div>
+              <label for="card_bg_color">Cor dos Cartões</label>
+              <input type="color" id="card_bg_color" name="card_bg_color" value="{{ settings.card_bg_color }}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="primary_color">Cor Primária / Destaque</label>
+              <input type="color" id="primary_color" name="primary_color" value="{{ settings.primary_color }}">
+            </div>
+            <div>
+              <label for="text_color">Cor do Texto</label>
+              <input type="color" id="text_color" name="text_color" value="{{ settings.text_color }}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label for="border_radius">Arredondamento de Bordas</label>
+              <select id="border_radius" name="border_radius">
+                <option value="0" {% if settings.border_radius == 0 %}selected{% endif %}>Sharp (0px)</option>
+                <option value="4" {% if settings.border_radius == 4 %}selected{% endif %}>Sutil (4px)</option>
+                <option value="8" {% if settings.border_radius == 8 %}selected{% endif %}>Arredondado (8px) - Padrão</option>
+                <option value="12" {% if settings.border_radius == 12 %}selected{% endif %}>Muito Arredondado (12px)</option>
+              </select>
+            </div>
+            <div>
+              <label for="font_family">Família de Fonte</label>
+              <select id="font_family" name="font_family">
+                {% for val, label in font_families %}
+                <option value="{{ val }}" {% if settings.font_family == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <button type="submit">Salvar Tema</button>
+        </form>
+      </section>
+
+      <!-- ===== LAYOUT ===== -->
+      <section class="tab-panel" id="tab-layout" role="tabpanel">
+        <h2>Layout & Grade de Produtos</h2>
+        <form method="post" action="/admin/customize/layout" class="stack-form">
+          <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+          {{ captcha_widget() }}
+
+          <h3>Posição das Categorias</h3>
+          <label for="category_position">Posição</label>
+          <select id="category_position" name="category_position">
+            {% for val, label in category_positions_options %}
+            <option value="{{ val }}" {% if settings.category_position == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p class="muted">
+            <strong>Top Bar:</strong> barra horizontal acima dos produtos |
+            <strong>Sidebar Esquerda:</strong> barra lateral fixa estilo marketplace |
+            <strong>Sidebar Direita:</strong> barra lateral direita |
+            <strong>Oculto:</strong> remove o menu de categorias
+          </p>
+
+          <h3>Estilo da Grade de Produtos</h3>
+          <label for="grid_style">Estilo</label>
+          <select id="grid_style" name="grid_style">
+            {% for val, label in grid_styles_options %}
+            <option value="{{ val }}" {% if settings.grid_style == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+
+          <label for="grid_columns">Colunas (modo Grid)</label>
+          <select id="grid_columns" name="grid_columns">
+            {% for val in grid_columns_options %}
+            <option value="{{ val }}" {% if settings.grid_columns == val %}selected{% endif %}>{{ val }} colunas</option>
+            {% endfor %}
+          </select>
+
+          <h3>Elementos Visíveis nos Cards</h3>
+          <label class="checkbox-label">
+            <input type="checkbox" name="show_category_badge" value="1" {% if settings.show_category_badge %}checked{% endif %}>
+            Mostrar badge de categoria
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="show_description" value="1" {% if settings.show_description %}checked{% endif %}>
+            Mostrar resumo da descrição
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="show_add_to_cart" value="1" {% if settings.show_add_to_cart %}checked{% endif %}>
+            Mostrar botão "Add to Cart" direto no card
+          </label>
+
+          <button type="submit">Salvar Layout</button>
+        </form>
+      </section>
+
+      <!-- ===== NAVIGATION ===== -->
+      <section class="tab-panel" id="tab-navigation" role="tabpanel">
+        <h2>Menu & Navegação</h2>
+        <form method="post" action="/admin/customize/navigation" class="stack-form">
+          <input type="hidden" name="captcha_token" value="{{ captcha_token }}">
+          {{ captcha_widget() }}
+
+          <h3>Construtor de Menu (Drag-and-drop visual não disponível sem JS — edite o JSON)</h3>
+          <p class="muted">Edite o JSON abaixo. Itens sem "custom: true" são links internos automáticos.</p>
+          <textarea id="nav_items_json" name="nav_items_json" rows="15" class="json-textarea" spellcheck="false">{{ nav_items_json | default(nav_items | tojson, true) }}</textarea>
+
+          <details>
+            <summary>Exemplo de estrutura JSON</summary>
+            <pre class="json-example">[
+  {"label": "Catálogo", "url": "/", "custom": false},
+  {"label": "Vender", "url": "/sell", "custom": false},
+  {"label": "Guia PGP", "url": "/page/guia-pgp", "custom": true},
+  {"label": "Regras", "url": "/page/regras", "custom": true},
+  {"label": "GitHub", "url": "https://github.com/spekofc/NodeMarket", "custom": true, "external": true}
+]</pre>
+          </details>
+
+          <button type="submit">Salvar Navegação</button>
+        </form>
+      </section>
+
+      <!-- ===== PAGES ===== -->
+      <section class="tab-panel" id="tab-pages" role="tabpanel">
+        <h2>Páginas Customizadas</h2>
+        <p class="muted">Crie páginas estáticas (FAQ, Regras, Guia PGP, etc.) acessíveis via <code>/page/seu-slug</code>.</p>
+
+        <div class="actions-bar">
+          <a href="/admin/customize/pages/new" class="btn">+ Nova Página</a>
+        </div>
+
+        {% if db_pages %}
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Slug</th>
+              <th>Status</th>
+              <th>Criada em</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for page in db_pages %}
+            <tr>
+              <td>{{ page.title }}</td>
+              <td><code>/page/{{ page.slug }}</code></td>
+              <td>
+                {% if page.is_published %}
+                <span class="status status-completed">Publicada</span>
+                {% else %}
+                <span class="status status-pending">Rascunho</span>
+                {% endif %}
+              </td>
+              <td>{{ page.created_at }}</td>
+              <td class="row-actions">
+                <a href="/admin/customize/pages/{{ page.id }}/edit">Editar</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Nenhuma página customizada criada ainda.</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -249,9 +249,9 @@ row = conn.execute("SELECT reason, description, status FROM reports WHERE produc
 conn.close()
 check("report stored", row is not None and row[0] == "scam" and row[2] == "open")
 
-# get an active product for reporting tests
+# get the product actually reported above (not just the first active one)
 conn = sqlite3.connect("data/nodemarket.db")
-active_prod = conn.execute("SELECT id FROM products WHERE active = 1 LIMIT 1").fetchone()
+active_prod = conn.execute("SELECT product_id FROM reports ORDER BY id DESC LIMIT 1").fetchone()
 conn.close()
 report_pid = str(active_prod[0]) if active_prod else "1"
 

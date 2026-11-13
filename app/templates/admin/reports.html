@@ -25,8 +25,7 @@
         <form method="post" action="/admin/reports/{{ r['id'] }}/archive" class="inline-form">
           <button type="submit">Archive</button>
         </form>
-        <form method="post" action="/admin/reports/{{ r['id'] }}/action" class="inline-form"
-              onsubmit="return confirm('Deactivate this product? This action cannot be undone from this panel.');">
+        <form method="post" action="/admin/reports/{{ r['id'] }}/action" class="inline-form">
           <button type="submit" class="danger">Deactivate product</button>
         </form>
         {% endif %}

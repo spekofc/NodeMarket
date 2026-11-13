@@ -36,25 +36,29 @@ def login_view(request: Request):
     if _authed(request):
         return RedirectResponse("/admin", status_code=303)
     token = captcha.new_challenge()
-    return templates.TemplateResponse(request, "admin/login.html", {"captcha_token": token})
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")
+    settings = dict(settings_row[0]) if settings_row else {}
+    return templates.TemplateResponse(request, "admin/login.html", {"captcha_token": token, "settings": settings})
 
 
 @router.post("/login")
 def login_submit(request: Request, password: str = Form(""),
                  captcha_token: str = Form(""), captcha_answer: str = Form("")):
     # CAPTCHA first: brute force never even reaches the password check.
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")
+    settings = dict(settings_row[0]) if settings_row else {}
     if not captcha.verify(captcha_token, captcha_answer):
         token = captcha.new_challenge()
         return templates.TemplateResponse(
             request, "admin/login.html",
-            {"error": "Wrong or expired captcha answer.", "captcha_token": token},
+            {"error": "Wrong or expired captcha answer.", "captcha_token": token, "settings": settings},
             status_code=401,
         )
     if not verify_admin_password(password):
         token = captcha.new_challenge()
         return templates.TemplateResponse(
             request, "admin/login.html",
-            {"error": "Wrong password.", "captcha_token": token},
+            {"error": "Wrong password.", "captcha_token": token, "settings": settings},
             status_code=401,
         )
     response = RedirectResponse("/admin", status_code=303)

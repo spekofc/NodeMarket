@@ -91,6 +91,9 @@ Open `http://127.0.0.1:8000`.
    visible in `/admin/reports` for moderation (archive or deactivate product).
 7. Vendors can post listings via **Sell / Post Listing** (`/sell`) — no account,
    just a secure token to manage their listing and view orders.
+8. Shape the storefront in **Visual Customizer** (`/admin/customize`) — theme
+   colors, logo/banner uploads, layout, navigation menu and custom pages. No
+   template editing, no JavaScript. See [Visual Customizer (v0.7)](#visual-customizer-v07).
 
 View orders in the admin panel as ciphertext and decrypt them locally:
 
@@ -120,6 +123,46 @@ Admin controls the marketplace policy in **Settings → Public listing policy**:
 Admin moderation: `/admin/listings` shows all vendor listings with
 Approve/Reject/Pause actions. Approved listings appear in the catalog
 alongside admin-created products.
+
+## Visual Customizer (v0.7)
+
+`/admin/customize` turns the storefront into a configurable store without
+editing a single template. Every form is plain HTML with a CAPTCHA, and
+every setting compiles to CSS variables or template variables at render
+time — still zero JavaScript, still `script-src 'none'`.
+
+| Tab | What it controls |
+|---|---|
+| **Identity & Images** | Store name, logo, hero banner image, banner title/subtitle and CTA button |
+| **Palette & Typography** | Theme presets, custom background/card/primary/text colors, corner radius, font family |
+| **Layout & Grid** | Category placement (top bar, left/right sidebar, hidden), product grid columns (2/3/4), grid vs list view |
+| **Menu & Navigation** | Navigation bar as a JSON list: internal links, custom pages, external links (`"external": true`) |
+| **Custom Pages** | Create, edit and delete static pages rendered at `/page/<slug>` |
+
+**Theme presets** ship with the install (Tor Dark, light, high-contrast,
+green…) and can be overridden color by color; picking a preset then editing
+a single color stores the reference preset name plus the custom values.
+
+**Image uploads** (logo, banner) accept PNG/JPG/JPEG/WebP/GIF up to 5 MB.
+Uploads are written to `static/uploads/`, renamed to random hex names, and
+**EXIF metadata is stripped** (`_strip_exif`) so camera/GPS data never
+reaches the filesystem or the served page.
+
+**Custom pages** are stored in the `custom_pages` table, rendered through
+the same `base.html`, and linked automatically in the navigation when their
+`custom` flag is set. Deleting a page happens from its edit screen, which
+carries a working CAPTCHA.
+
+All five customizer forms are CAPTCHA-protected (the same in-memory SVG
+challenge used at checkout) and rate-limited at 30 requests/min.
+
+## Launcher scripts
+
+`run.bat` (Windows) and `run.sh` (Linux/macOS) bootstrap everything on a
+fresh clone: create `.venv`, install `requirements.txt`, copy
+`.env.example` to `.env` if absent, and start uvicorn on
+`http://127.0.0.1:8000`. No global Python packages are required beyond the
+venv.
 
 ## Docker deploy
 
@@ -271,9 +314,10 @@ your server — that is the operator's job:
 | CSRF | SameSite=Lax cookies + cross-origin POST rejection (Origin check) |
 | Sessions | itsdangerous-signed cookies, HttpOnly, SameSite=Lax |
 | Admin auth | constant-time password comparison, 12h signed session |
-| Captcha | self-hosted, zero-JS SVG challenge on admin login and checkout; answer lives only in process RAM, keyed by a single-use signed token with 5-minute expiry; no database state |
+| Captcha | self-hosted, zero-JS SVG challenge on admin login, all admin write endpoints (customizer, pages) and checkout; answer lives only in process RAM, keyed by a single-use signed token with 5-minute expiry; no database state |
 | JS detector | pure-CSS banner visible only when JavaScript is enabled (hidden via `<noscript><style>`), fully compatible with `script-src 'none'` |
-| Rate limiting | in-memory sliding window on admin login, checkout and captcha routes; client addresses never touch disk or logs; automatic bucket sweep |
+| Rate limiting | in-memory sliding window: admin login 5/min, checkout 10/min, captcha 30/min; client addresses never touch disk or logs; automatic bucket sweep |
+| Uploads | logo/banner images validated by magic bytes, random filenames, EXIF stripped before serving |
 | Buyer data | PGP-encrypted before persistence; fail-closed checkout without a valid key |
 | Logging | none — access log disabled, nothing about the requester is stored |
 

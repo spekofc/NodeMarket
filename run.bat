@@ -1,5 +1,5 @@
 @echo off
-REM NodeMarket — one-click run script for Windows
+REM NodeMarket v0.7 — one-click run script for Windows
 REM Usage: double-click run.bat or run from cmd/powershell
 
 chcp 65001 >nul
@@ -7,7 +7,8 @@ title NodeMarket Server
 
 echo.
 echo ========================================
-echo  NodeMarket — Privacy-First Marketplace
+echo  NodeMarket v0.7 — Privacy-First Marketplace
+echo  Visual Store Customizer & Full Configuration
 echo ========================================
 echo.
 
@@ -56,6 +57,7 @@ echo [4/4] Starting server...
 echo.
 echo Server will be available at: http://127.0.0.1:8000
 echo Admin panel: http://127.0.0.1:8000/admin (password from .env)
+echo Visual Customizer: http://127.0.0.1:8000/admin/customize
 echo.
 echo Press Ctrl+C to stop.
 echo.

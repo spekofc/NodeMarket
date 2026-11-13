@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# NodeMarket — one-click run script for Linux/macOS
+# NodeMarket v0.7 — one-click run script for Linux/macOS
 # Usage: ./run.sh
 
 set -euo pipefail
 
 echo
 echo "========================================"
-echo "  NodeMarket — Privacy-First Marketplace"
+echo "  NodeMarket v0.7 — Privacy-First Marketplace"
+echo "  Visual Store Customizer & Full Configuration"
 echo "========================================"
 echo
 
@@ -46,6 +47,7 @@ echo "[4/4] Starting server..."
 echo
 echo "Server will be available at: http://127.0.0.1:8000"
 echo "Admin panel: http://127.0.0.1:8000/admin (password from .env)"
+echo "Visual Customizer: http://127.0.0.1:8000/admin/customize"
 echo
 echo "Press Ctrl+C to stop."
 echo

@@ -1,0 +1,34 @@
+{% extends "admin/base.html" %}
+{% block title %}Custom Pages · Admin{% endblock %}
+{% block admin_content %}
+<h2>Custom Pages</h2>
+<p class="muted">Create static pages (FAQ, Rules, PGP Guide, etc.) accessible at <code>/page/your-slug</code>.</p>
+
+<div class="actions-bar">
+  <a href="/admin/customize/pages/new" class="btn">+ New Page</a>
+</div>
+
+{% if pages %}
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+    {% for page in pages %}
+    <tr>
+      <td>{{ page.title }}</td>
+      <td><code>/page/{{ page.slug }}</code></td>
+      <td>
+        {% if page.is_published %}<span class="status status-completed">Published</span>
+        {% else %}<span class="status status-pending">Draft</span>{% endif %}
+      </td>
+      <td>{{ page.created_at }}</td>
+      <td class="row-actions">
+        <a href="/admin/customize/pages/{{ page.id }}/edit">Edit</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No custom pages yet. Create one to get started!</p>
+{% endif %}
+{% endblock %}

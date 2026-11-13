@@ -36,12 +36,14 @@ app/
   security.py     # signed cookie cart, admin session, OriginCheck, CSRF posture
   captcha.py      # SVG math captcha, in-memory single-use tokens
   ratelimit.py    # in-memory sliding window: admin_login 5/min, checkout 10/min, captcha 30/min
-  templating.py   # Jinja2 env + money filter
+  templating.py   # Jinja2 env + money filter; injects `settings`/`store_name` for every template
   main.py         # app assembly, security headers (script-src 'none'), middleware
   routers/
     catalog.py    # storefront (?q=&category=slug), product detail, cart
     checkout.py   # THE buyer-data entry point: captcha → PGP → INSERT
     admin.py      # login/orders/products/categories/settings
+    customize.py  # v0.7 visual customizer: theme, layout, identity, nav, custom pages
+    public_pages.py # /page/<slug> renderer for customizer pages
     account.py    # (if present) order tracking by token
   payments/
     providers.py  # demo/btc/xmr provider selection
@@ -62,7 +64,10 @@ tools/            # test suites (stdlib-only, hit http://127.0.0.1:8000)
   No ORM. Add schema changes to BOTH the CREATE TABLE block and
   `_MIGRATIONS` in `app/db.py` (old databases upgrade in place).
 - Templates: Jinja2, extend `base.html` (storefront) or `admin/base.html`.
-  Never invent template globals; available: `store_name`, request context.
+  Never invent template globals; `settings` (the `store_settings` row) and
+  `store_name` are injected automatically by `app/templating.py`
+  (`NodeMarketTemplates`), so `base.html` can always read them — do not
+  re-pass them per route.
 - Error handling: return rendered error pages with proper status codes;
   never let exceptions carry buyer text.
 

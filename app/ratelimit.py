@@ -18,7 +18,7 @@ from starlette.responses import HTMLResponse, Response
 _RULES: dict[str, tuple[int, float]] = {
     "admin_login": (5, 60),
     "checkout": (10, 60),
-    "captcha": (200, 60),
+    "captcha": (30, 60),
     "sell": (10, 60),
     "report": (10, 60),
 }

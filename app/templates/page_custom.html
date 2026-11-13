@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title }} · {{ store_name }}{% endblock %}
+{% block content %}
+<article class="page-custom">
+  <p><a href="/">&larr; Back to catalog</a></p>
+
+  <h1>{{ page.title }}</h1>
+
+  <div class="custom-content">
+    {% for line in page.content.split('\n') %}
+    {% if line.startswith('# ') %}
+    <h2>{{ line[2:] }}</h2>
+    {% elif line.startswith('## ') %}
+    <h3>{{ line[3:] }}</h3>
+    {% elif line.startswith('### ') %}
+    <h4>{{ line[4:] }}</h4>
+    {% elif line.startswith('- ') or line.startswith('* ') %}
+    <ul><li>{{ line[2:] }}</li></ul>
+    {% elif line.strip() == '' %}
+    <p></p>
+    {% else %}
+    <p>{{ line }}</p>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <p class="muted">
+    <a href="/">&larr; Back to catalog</a>
+  </p>
+</article>
+{% endblock %}

@@ -82,6 +82,7 @@ def _checkout_context(totals, settings_row, captcha_token="", error="", pgp_erro
         "pgp_error": pgp_error,
         "pgp_mode": pgp_mode,
         "pgp_block": pgp_block,
+        "settings": dict(settings_row),
     }
     return ctx, key_ok
 
@@ -199,10 +200,12 @@ def order_view(request: Request, order_ref: str):
             request, "not_found.html", {"message": "Order not found."}, status_code=404)
     order["payment_details_lines"] = order["payment_details"].splitlines()
     events = escrow.get_events(order["id"]) if order["settlement_mode"] == "escrow" else []
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")[0]
     return templates.TemplateResponse(
         request, "order.html",
         {"order": order, "events": events,
-         "can_release": order["status"] == "in_escrow"})
+         "can_release": order["status"] == "in_escrow",
+         "settings": dict(settings_row)})
 
 
 @router.post("/order/{order_ref}/release", response_class=HTMLResponse)
@@ -224,11 +227,13 @@ def order_release(request: Request, order_ref: str):
     except escrow.TransitionError as exc:
         error = f"Cannot release payment: {exc}"
     events = escrow.get_events(order["id"])
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")[0]
     return templates.TemplateResponse(
         request, "order.html",
         {"order": order, "events": events,
          "can_release": order["status"] == "in_escrow",
-         "release_error": error})
+         "release_error": error,
+         "settings": dict(settings_row)})
 
 
 # --- order messaging (zero-JS, no accounts) -----------------------------------

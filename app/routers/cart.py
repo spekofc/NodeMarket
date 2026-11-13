@@ -46,7 +46,9 @@ def _hydrate(request: Request):
 @router.get("/cart", response_class=HTMLResponse)
 def cart_view(request: Request):
     cart = _hydrate(request)
-    return templates.TemplateResponse(request, "cart.html", {"cart": cart})
+    settings_row = query("SELECT * FROM store_settings WHERE id = 1")
+    settings = dict(settings_row[0]) if settings_row else {}
+    return templates.TemplateResponse(request, "cart.html", {"cart": cart, "settings": settings})
 
 
 def _write_cart(response: RedirectResponse, cart: dict[int, int]) -> RedirectResponse:

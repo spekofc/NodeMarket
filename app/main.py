@@ -12,12 +12,12 @@ from urllib.parse import urlparse
 from .config import settings
 from .db import init_db
 from .templating import templates
-from .routers import catalog, cart, checkout, admin, captcha
+from .routers import catalog, cart, checkout, admin, captcha, customize, public_pages
 from .ratelimit import RateLimitMiddleware
 
 CSP = (
     "default-src 'self'; "
-    "style-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data:; "
     "script-src 'none'; "            # hard zero-JS declaration
     "form-action 'self'; "
@@ -77,6 +77,8 @@ def create_app() -> FastAPI:
     app.include_router(checkout.router)
     app.include_router(admin.router)
     app.include_router(captcha.router)
+    app.include_router(customize.router)
+    app.include_router(public_pages.router)
 
     @app.on_event("startup")
     def startup() -> None:
