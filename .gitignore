@@ -15,3 +15,8 @@ test_pgp_key.*
 static/uploads/*
 !static/uploads/.gitkeep
 
+
+# packaging artifacts
+*.spec
+NodeMarket-v*-portable.zip
+
